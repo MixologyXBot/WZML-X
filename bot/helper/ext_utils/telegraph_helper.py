@@ -79,6 +79,6 @@ class TelegraphHelper:
         return
 
 
-telegraph = TelegraphHelper("WZML-X", "https://github.com/SilentDemonSD/WZML-X")
+telegraph = TelegraphHelper("Mixology-X Bot", "https://t.me/MixologyXBot")
 
 print(__name__)
