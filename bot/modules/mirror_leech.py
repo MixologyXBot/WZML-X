@@ -478,3 +478,7 @@ async def nzb_leech(client, message):
     bot_loop.create_task(
         Mirror(client, message, is_leech=True, is_nzb=True).new_event()
     )
+
+
+async def uphoster(client, message):
+    bot_loop.create_task(Mirror(client, message, is_uphoster=True).new_event())

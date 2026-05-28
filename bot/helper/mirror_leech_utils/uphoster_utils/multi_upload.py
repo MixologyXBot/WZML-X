@@ -1,17 +1,23 @@
 from asyncio import gather
 from logging import getLogger
 
-from bot.helper.mirror_leech_utils.uphoster_utils.gofile_utils.upload import (
-    GoFileUpload,
-)
 from bot.helper.mirror_leech_utils.uphoster_utils.buzzheavier_utils.upload import (
     BuzzHeavierUpload,
+)
+from bot.helper.mirror_leech_utils.uphoster_utils.gofile_utils.upload import (
+    GoFileUpload,
 )
 from bot.helper.mirror_leech_utils.uphoster_utils.pixeldrain_utils.upload import (
     PixelDrainUpload,
 )
 
 LOGGER = getLogger(__name__)
+
+SERVICE_MAP = {
+    "gofile": GoFileUpload,
+    "buzzheavier": BuzzHeavierUpload,
+    "pixeldrain": PixelDrainUpload,
+}
 
 
 class MultiUphosterUpload:
@@ -27,15 +33,10 @@ class MultiUphosterUpload:
         self.failed = []
 
         for service in services:
-            if service == "gofile":
-                self.uploaders.append(GoFileUpload(ProxyListener(self, "gofile"), path))
-            elif service == "buzzheavier":
+            uploader_cls = SERVICE_MAP.get(service)
+            if uploader_cls:
                 self.uploaders.append(
-                    BuzzHeavierUpload(ProxyListener(self, "buzzheavier"), path)
-                )
-            elif service == "pixeldrain":
-                self.uploaders.append(
-                    PixelDrainUpload(ProxyListener(self, "pixeldrain"), path)
+                    uploader_cls(ProxyListener(self, service), path)
                 )
 
     @property
@@ -58,7 +59,7 @@ class MultiUphosterUpload:
         await gather(*tasks)
 
     async def on_upload_complete(
-        self, service, link, files, folders, mime_type, dir_id
+        self, service, link, files, folders, mime_type, dir_id=""
     ):
         self.results[service] = {
             "link": link,
@@ -67,39 +68,59 @@ class MultiUphosterUpload:
             "mime_type": mime_type,
             "dir_id": dir_id,
         }
+        LOGGER.info(f"{service.capitalize()} Upload Complete: {link}")
         await self._check_completion()
 
     async def on_upload_error(self, service, error):
-        LOGGER.error(f"Upload failed for {service}: {error}")
-        self.failed.append(service)
         self.results[service] = {"error": error}
+        self.failed.append(service)
+        LOGGER.error(f"{service.capitalize()} Upload Failed: {error}")
         await self._check_completion()
 
     async def _check_completion(self):
-        if len(self.results) == len(self.uploaders):
-            if len(self.failed) == len(self.uploaders):
-                await self.listener.on_upload_error("All uploads failed.")
-            else:
-                successful_result = next(
-                    v for k, v in self.results.items() if "error" not in v
+        if len(self.results) == len(self.services):
+            if len(self.failed) == len(self.services):
+                await self.listener.on_upload_error(
+                    "All uphoster uploads failed!"
                 )
+            else:
+                first_success = next(
+                    s for s in self.services if s not in self.failed
+                )
+                result = self.results[first_success]
                 await self.listener.on_upload_complete(
-                    self.results,
-                    successful_result["files"],
-                    successful_result["folders"],
-                    successful_result["mime_type"],
-                    successful_result["dir_id"],
+                    link=self.results,
+                    files=result["files"],
+                    folders=result["folders"],
+                    mime_type=result["mime_type"],
+                    dir_id=result.get("dir_id", ""),
                 )
 
 
 class ProxyListener:
+    """Lightweight proxy that routes upload callbacks to MultiUphosterUpload.
+
+    Delegates shared attributes (user_id, name, message, is_cancelled) to
+    the parent multi-uploader's listener, and intercepts completion/error
+    callbacks to route them back with the service name.
+    """
+
     def __init__(self, multi_uploader, service):
         self.multi_uploader = multi_uploader
         self.service = service
         self.is_cancelled = False
 
-    def __getattr__(self, name):
-        return getattr(self.multi_uploader.listener, name)
+    @property
+    def user_id(self):
+        return self.multi_uploader.listener.user_id
+
+    @property
+    def name(self):
+        return self.multi_uploader.listener.name
+
+    @property
+    def message(self):
+        return self.multi_uploader.listener.message
 
     async def on_upload_complete(self, link, files, folders, mime_type, dir_id=""):
         await self.multi_uploader.on_upload_complete(
