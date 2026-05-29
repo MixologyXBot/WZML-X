@@ -118,6 +118,7 @@ class TelegramUploader:
 ┠ <b>User :</b> {self._listener.user.mention} ( #ID{self._listener.user_id} ){f"\n┠ <b>Message Link :</b> <a href='{msg_link}'>Click Here</a>" if msg_link else ""}
 ┖ <b>Source :</b> <a href='{self._listener.source_url}'>Click Here</a>"""
             try:
+                await TgClient.bot.resolve_peer(self._listener.up_dest)
                 self._log_msg = await TgClient.bot.send_message(
                     chat_id=self._listener.up_dest,
                     text=msg,
@@ -318,32 +319,17 @@ class TelegramUploader:
                 self._msgs_dict[m.link] = m.caption
         self._sent_msg = msgs_list[-1]
 
-    async def _send_cached(self, chat_id):
-        msg, kw = self._sent_msg, {"chat_id": chat_id, "disable_notification": True}
-        cap = msg.caption or ""
-        if msg.photo:
-            return await TgClient.bot.send_photo(photo=msg.photo.file_id, caption=cap, **kw)
-        if msg.video:
-            return await TgClient.bot.send_video(video=msg.video.file_id, caption=cap, **kw)
-        if msg.audio:
-            return await TgClient.bot.send_audio(audio=msg.audio.file_id, caption=cap, **kw)
-        if msg.voice:
-            return await TgClient.bot.send_voice(voice=msg.voice.file_id, caption=cap, **kw)
-        if msg.animation:
-            return await TgClient.bot.send_animation(animation=msg.animation.file_id, caption=cap, **kw)
-        if msg.video_note:
-            return await TgClient.bot.send_video_note(video_note=msg.video_note.file_id, **kw)
-        if msg.sticker:
-            return await TgClient.bot.send_sticker(sticker=msg.sticker.file_id, **kw)
-        doc = msg.document
-        return await TgClient.bot.send_document(
-            document=doc.file_id if doc else msg.message_id, caption=cap, **kw
-        )
-
     async def _copy_media(self):
         try:
             if self._bot_pm:
-                await self._send_cached(self._listener.user_id)
+                await TgClient.bot.copy_message(
+                    chat_id=self._listener.user_id,
+                    from_chat_id=self._sent_msg.chat.id,
+                    message_id=self._sent_msg.id,
+                    reply_to_message_id=(
+                        self._listener.pm_msg.id if self._listener.pm_msg else None
+                    ),
+                )
         except Exception as err:
             if not self._listener.is_cancelled:
                 LOGGER.error(f"Failed To Send in BotPM:\n{str(err)}")
@@ -616,8 +602,11 @@ class TelegramUploader:
                                 leech_dest, _ = str(leech_dest).split("|", 1)
                             if leech_dest.lstrip("-").isdigit():
                                 leech_dest = int(leech_dest)
-                        await self._send_cached(leech_dest)
-                        await self._send_cached(leech_dest)
+                        await TgClient.bot.copy_message(
+                            chat_id=leech_dest,
+                            from_chat_id=self._sent_msg.chat.id,
+                            message_id=self._sent_msg.id,
+                        )
                     except Exception as e:
                         if not self._listener.is_cancelled:
                             LOGGER.error(
