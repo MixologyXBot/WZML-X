@@ -3,6 +3,11 @@ from uvloop import install
 
 install()
 
+from asyncio import new_event_loop, set_event_loop
+
+bot_loop = new_event_loop()
+set_event_loop(bot_loop)
+
 from asyncio import sleep
 from urllib.parse import urlparse
 from contextlib import asynccontextmanager
