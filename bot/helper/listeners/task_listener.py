@@ -41,11 +41,11 @@ from ..ext_utils.files_utils import (
 from ..ext_utils.links_utils import is_gdrive_id
 from ..ext_utils.status_utils import get_readable_file_size, get_readable_time
 from ..ext_utils.task_manager import check_running_tasks, start_from_queued
-from ..mirror_leech_utils.uphoster_utils.gofile_utils.upload import GoFileUpload
-from ..mirror_leech_utils.uphoster_utils.buzzheavier_utils.upload import (
+from ..mirror_leech_utils.uphoster_utils.uploaders_utils.gofile_uploader import GoFileUpload
+from ..mirror_leech_utils.uphoster_utils.uploaders_utils.buzzheavier_uploader import (
     BuzzHeavierUpload,
 )
-from ..mirror_leech_utils.uphoster_utils.pixeldrain_utils.upload import (
+from ..mirror_leech_utils.uphoster_utils.uploaders_utils.pixeldrain_uploader import (
     PixelDrainUpload,
 )
 from ..mirror_leech_utils.uphoster_utils.multi_upload import MultiUphosterUpload
