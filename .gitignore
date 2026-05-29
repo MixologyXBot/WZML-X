@@ -1,5 +1,4 @@
 .venv/*
-SKILL.md
 config.py
 token.pickle
 credentials.json
@@ -18,3 +17,8 @@ list_drives.txt
 shortener.txt
 cookies.txt
 downloads/*
+.github/instructions/*
+.github/skills/*
+.github/agents/*
+graphify-out/*
+.graphify_*
