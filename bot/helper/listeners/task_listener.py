@@ -525,7 +525,7 @@ class TaskListener(TaskConfig):
                     if INDEX_URL and self.name:
                         safe_name = rutils.quote(self.name.strip("/"))
                         share_url = f"{INDEX_URL}/{safe_name}"
-                            if mime_type == "Folder":
+                        if mime_type == "Folder":
                             share_url += "/"
                         buttons.url_button("⚡ Index Link", share_url)
                         if mime_type.startswith(("image", "video", "audio")):
