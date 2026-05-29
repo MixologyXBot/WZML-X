@@ -14,6 +14,7 @@ from pyrogram.errors import (
     MediaEmpty,
     MediaCaptionTooLong,
     EntityBoundsInvalid,
+    PeerIdInvalid,
 )
 
 try:
@@ -98,6 +99,11 @@ async def send_message(message, text, buttons=None, block=True, photo=None, **kw
         return await send_message(message, text, None)
     except (MessageEmpty, EntityBoundsInvalid):
         return await send_message(message, text, parse_mode=ParseMode.DISABLED)
+    except PeerIdInvalid:
+        if isinstance(message, int):
+            await TgClient.bot.resolve_peer(message)
+            return await send_message(message, text, buttons, block, photo)
+        raise
     except Exception as e:
         LOGGER.error(str(e), exc_info=True)
         return str(e)

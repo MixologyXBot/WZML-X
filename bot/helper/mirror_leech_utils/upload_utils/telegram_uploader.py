@@ -118,6 +118,7 @@ class TelegramUploader:
 ┠ <b>User :</b> {self._listener.user.mention} ( #ID{self._listener.user_id} ){f"\n┠ <b>Message Link :</b> <a href='{msg_link}'>Click Here</a>" if msg_link else ""}
 ┖ <b>Source :</b> <a href='{self._listener.source_url}'>Click Here</a>"""
             try:
+                await TgClient.bot.resolve_peer(self._listener.up_dest)
                 self._log_msg = await TgClient.bot.send_message(
                     chat_id=self._listener.up_dest,
                     text=msg,
