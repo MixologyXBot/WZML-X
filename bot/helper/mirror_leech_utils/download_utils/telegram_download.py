@@ -135,7 +135,7 @@ class TelegramDownloadHelper:
         self.session = session
         if not self.session:
             if self._hyper_dl:
-                self.session == "hbots"
+                self.session = "hbots"
             elif self._listener.user_transmission and self._listener.is_super_chat:
                 self.session = "user"
                 try:
