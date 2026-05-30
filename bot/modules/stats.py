@@ -56,7 +56,10 @@ commands = {
     "aiohttp": (["uv", "pip", "show", "aiohttp"], r"Version: ([\d.]+)"),
     "pyrotgfork": (["uv", "pip", "show", "pyrotgfork"], r"Version: ([\d.]+)"),
     "gapi": (["uv", "pip", "show", "google-api-python-client"], r"Version: ([\d.]+)"),
-    "mega": (["mega-version"], r"version: ([\d.]+)"),
+    "mega": (
+        ["python3", "-c", "from mega import MegaApi; print(MegaApi('test').getVersion())"],
+        r"v?([\d.]+)",
+    ),
 }
 
 
@@ -303,9 +306,9 @@ async def retry_mega_version():
     version = await get_version_async(command, regex, timeout=10)
     if version != "Timeout" and not version.startswith("Exception"):
         bot_cache["eng_versions"]["mega"] = version
-        LOGGER.info(f"MegaCMD Version Fetched: {version}")
+        LOGGER.info(f"MegaSDK Version Fetched: {version}")
     else:
-        LOGGER.warning(f"Failed to fetch MegaCMD Version: {version}")
+        LOGGER.warning(f"Failed to fetch MegaSDK Version: {version}")
 
 
 @new_task

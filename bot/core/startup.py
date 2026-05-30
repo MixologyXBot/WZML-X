@@ -50,6 +50,8 @@ async def update_qb_options():
             {"web_ui_password": "admin1"}
         )
     else:
+        if qbit_options.get("web_ui_password") == "admin":
+            qbit_options["web_ui_password"] = "admin1"
         await TorrentManager.qbittorrent.app.set_preferences(qbit_options)
 
 
