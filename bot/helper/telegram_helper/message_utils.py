@@ -166,8 +166,7 @@ async def send_file(message, file, caption="", buttons=None):
 
 async def send_rss(text, chat_id, thread_id):
     try:
-        app = TgClient.user or TgClient.bot
-        return await app.send_message(
+        return await TgClient.bot.send_message(
             chat_id=chat_id,
             text=text,
             disable_web_page_preview=True,
@@ -177,7 +176,7 @@ async def send_rss(text, chat_id, thread_id):
     except (FloodWait, FloodPremiumWait) as f:
         LOGGER.warning(str(f))
         await sleep(f.value * 1.2)
-        return await send_rss(text)
+        return await send_rss(text, chat_id, thread_id)
     except Exception as e:
         LOGGER.error(str(e), exc_info=True)
         return str(e)
