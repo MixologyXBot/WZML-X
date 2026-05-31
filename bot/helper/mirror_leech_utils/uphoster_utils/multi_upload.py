@@ -1,6 +1,12 @@
 from asyncio import gather
 from logging import getLogger
 
+from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.devuploads_uploader import (
+    DevUploadsUpload,
+)
+from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.vikingfile_uploader import (
+    VikingFileUpload,
+)
 from bot.helper.mirror_leech_utils.uphoster_utils.uploaders_utils.buzzheavier_uploader import (
     BuzzHeavierUpload,
 )
@@ -17,6 +23,8 @@ SERVICE_MAP = {
     "gofile": GoFileUpload,
     "buzzheavier": BuzzHeavierUpload,
     "pixeldrain": PixelDrainUpload,
+    "devuploads": DevUploadsUpload,
+    "vikingfile": VikingFileUpload,
 }
 
 

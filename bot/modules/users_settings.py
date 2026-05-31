@@ -49,6 +49,10 @@ uphoster_options = [
     "BUZZHEAVIER_TOKEN",
     "BUZZHEAVIER_FOLDER_ID",
     "PIXELDRAIN_KEY",
+    "DEVUPLOADS_KEY",
+    "DEVUPLOADS_FOLDER",
+    "VIKINGFILE_HASH",
+    "VIKINGFILE_FOLDER",
 ]
 rclone_options = ["RCLONE_CONFIG", "RCLONE_PATH", "RCLONE_FLAGS"]
 gdrive_options = ["TOKEN_PICKLE", "GDRIVE_ID", "INDEX_URL"]
@@ -286,6 +290,26 @@ Here I will explain how to use mltb.* which is reference to files you want to wo
         "String",
         "PixelDrain API Key",
         "<i>Send your PixelDrain API Key.</i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+    ),
+    "DEVUPLOADS_KEY": (
+        "String",
+        "DevUploads API Key",
+        "<i>Send your DevUploads API Key.</i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+    ),
+    "DEVUPLOADS_FOLDER": (
+        "String",
+        "DevUploads Folder ID",
+        "<i>Send your DevUploads Folder ID. Leave empty to upload to root.</i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+    ),
+    "VIKINGFILE_HASH": (
+        "String",
+        "VikingFile Hash",
+        "<i>Send your VikingFile User Hash.</i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+    ),
+    "VIKINGFILE_FOLDER": (
+        "String",
+        "VikingFile Folder Name",
+        "<i>Send your VikingFile folder name/path. Leave empty to upload to root.</i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
     ),
 }
 
@@ -536,6 +560,8 @@ async def get_user_settings(from_user, stype="main"):
         buttons.data_button("Gofile Tools", f"userset {user_id} gofile")
         buttons.data_button("BuzzHeavier Tools", f"userset {user_id} buzzheavier")
         buttons.data_button("PixelDrain Tools", f"userset {user_id} pixeldrain")
+        buttons.data_button("DevUploads Tools", f"userset {user_id} devuploads")
+        buttons.data_button("VikingFile Tools", f"userset {user_id} vikingfile")
         buttons.data_button("Back", f"userset {user_id} back", "footer")
         buttons.data_button("Close", f"userset {user_id} close", "footer")
         btns = buttons.build_menu(1)
@@ -592,6 +618,36 @@ async def get_user_settings(from_user, stype="main"):
 ┃
 ┠ <b>BuzzHeavier Token</b> → <code>{bztoken}</code>
 ┖ <b>BuzzHeavier Folder ID</b> → <code>{bzfolder}</code>"""
+
+    elif stype == "devuploads":
+        buttons.data_button("DevUploads API Key", f"userset {user_id} menu DEVUPLOADS_KEY")
+        buttons.data_button("DevUploads Folder ID", f"userset {user_id} menu DEVUPLOADS_FOLDER")
+        buttons.data_button("Back", f"userset {user_id} back uphoster", "footer")
+        buttons.data_button("Close", f"userset {user_id} close", "footer")
+        btns = buttons.build_menu(1)
+
+        dukey = user_dict.get("DEVUPLOADS_KEY") or Config.DEVUPLOADS_KEY or "None"
+        dufolder = user_dict.get("DEVUPLOADS_FOLDER") or Config.DEVUPLOADS_FOLDER or "None (Root)"
+        text = f"""⌬ <b>DevUploads Settings :</b>
+┟ <b>Name</b> → {user_name}
+┃
+┠ <b>DevUploads Key</b> → <code>{dukey}</code>
+┖ <b>DevUploads Folder ID</b> → <code>{dufolder}</code>"""
+
+    elif stype == "vikingfile":
+        buttons.data_button("VikingFile Hash", f"userset {user_id} menu VIKINGFILE_HASH")
+        buttons.data_button("VikingFile Folder", f"userset {user_id} menu VIKINGFILE_FOLDER")
+        buttons.data_button("Back", f"userset {user_id} back uphoster", "footer")
+        buttons.data_button("Close", f"userset {user_id} close", "footer")
+        btns = buttons.build_menu(1)
+
+        vfkey = user_dict.get("VIKINGFILE_HASH") or Config.VIKINGFILE_HASH or "None"
+        vffolder = user_dict.get("VIKINGFILE_FOLDER") or Config.VIKINGFILE_FOLDER or "None (Root)"
+        text = f"""⌬ <b>VikingFile Settings :</b>
+┟ <b>Name</b> → {user_name}
+┃
+┠ <b>VikingFile Hash</b> → <code>{vfkey}</code>
+┖ <b>VikingFile Folder</b> → <code>{vffolder}</code>"""
 
     elif stype == "gofile":
         buttons.data_button("Gofile Token", f"userset {user_id} menu GOFILE_TOKEN")
@@ -1267,6 +1323,8 @@ async def edit_user_settings(client, query):
         "gofile",
         "buzzheavier",
         "pixeldrain",
+        "devuploads",
+        "vikingfile",
         "ffset",
         "advanced",
         "gdrive",
@@ -1304,7 +1362,7 @@ async def edit_user_settings(client, query):
             )
 
         buttons = ButtonMaker()
-        for service in ["gofile", "buzzheavier", "pixeldrain"]:
+        for service in ["gofile", "buzzheavier", "pixeldrain", "devuploads", "vikingfile"]:
             state = "✓" if service in selected_services else ""
             buttons.data_button(
                 f"{service.capitalize()} {state}",
