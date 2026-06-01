@@ -5,7 +5,7 @@ from contextlib import suppress
 from secrets import token_hex
 from yt_dlp import YoutubeDL, DownloadError
 
-from .... import task_dict_lock, task_dict, user_data
+from .... import task_dict_lock, task_dict
 from ....core.config_manager import BinConfig
 from ...ext_utils.bot_utils import sync_to_async, async_to_sync
 from ...ext_utils.task_manager import (

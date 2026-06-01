@@ -29,7 +29,12 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
         )
         buttons.data_button("Available Plugins", f"plugins {user_id} available")
         buttons.data_button("Plugin Info", f"plugins {user_id} info")
-        buttons.data_button("Close", f"plugins {user_id} close", position="footer", style=ButtonStyle.DANGER)
+        buttons.data_button(
+            "Close",
+            f"plugins {user_id} close",
+            position="footer",
+            style=ButtonStyle.DANGER,
+        )
 
         text = f"""⌬ <b>Plugin Management</b>
 │
@@ -49,7 +54,12 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
             )
 
         buttons.data_button("Back", f"plugins {user_id} main", position="footer")
-        buttons.data_button("Close", f"plugins {user_id} close", position="footer", style=ButtonStyle.DANGER)
+        buttons.data_button(
+            "Close",
+            f"plugins {user_id} close",
+            position="footer",
+            style=ButtonStyle.DANGER,
+        )
 
         text = f"""⌬ <b>Loaded Plugins</b>
 │
@@ -66,7 +76,12 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
                 buttons.data_button(f"📦 {plugin}", f"plugins {user_id} load {plugin}")
 
         buttons.data_button("Back", f"plugins {user_id} main", position="footer")
-        buttons.data_button("Close", f"plugins {user_id} close", position="footer", style=ButtonStyle.DANGER)
+        buttons.data_button(
+            "Close",
+            f"plugins {user_id} close",
+            position="footer",
+            style=ButtonStyle.DANGER,
+        )
 
         unloaded_count = len([p for p in available_plugins if p not in loaded_plugins])
         text = f"""⌬ <b>Available Plugins</b>
@@ -88,7 +103,12 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
             text += f"┖ Description: {plugin.description}\n\n"
 
         buttons.data_button("Back", f"plugins {user_id} main", position="footer")
-        buttons.data_button("Close", f"plugins {user_id} close", position="footer", style=ButtonStyle.DANGER)
+        buttons.data_button(
+            "Close",
+            f"plugins {user_id} close",
+            position="footer",
+            style=ButtonStyle.DANGER,
+        )
         btns = buttons.build_menu(1)
 
     elif stype.startswith("plugin_"):
@@ -105,7 +125,12 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
             buttons.data_button("Reload", f"plugins {user_id} reload {plugin_name}")
 
             buttons.data_button("Back", f"plugins {user_id} loaded", position="footer")
-            buttons.data_button("Close", f"plugins {user_id} close", position="footer", style=ButtonStyle.DANGER)
+            buttons.data_button(
+                "Close",
+                f"plugins {user_id} close",
+                position="footer",
+                style=ButtonStyle.DANGER,
+            )
 
             text = f"""⌬ <b>Plugin: {plugin_name}</b>
 │

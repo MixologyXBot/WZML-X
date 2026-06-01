@@ -135,9 +135,7 @@ class BuzzHeavierUpload(BaseUpload):
     async def _upload_dir(self, input_directory):
         parent_folder_id = self.folder_id or await self.__get_root_id()
         if not parent_folder_id:
-            raise Exception(
-                "Failed to retrieve Root Directory ID for folder upload"
-            )
+            raise Exception("Failed to retrieve Root Directory ID for folder upload")
         folder_name = ospath.basename(input_directory)
         main_folder_data = await self.create_folder(parent_folder_id, folder_name)
         main_folder_id = extract_id(main_folder_data)
@@ -151,15 +149,11 @@ class BuzzHeavierUpload(BaseUpload):
             if self.listener.is_cancelled:
                 break
             rel_path = ospath.relpath(root, input_directory)
-            current_folder_id = folder_ids.get(
-                ospath.dirname(rel_path), main_folder_id
-            )
+            current_folder_id = folder_ids.get(ospath.dirname(rel_path), main_folder_id)
             if rel_path != ".":
                 current_folder_id = folder_ids.get(rel_path)
             for subdir in _dirs:
-                sub_folder_data = await self.create_folder(
-                    current_folder_id, subdir
-                )
+                sub_folder_data = await self.create_folder(current_folder_id, subdir)
                 sub_folder_id = extract_id(sub_folder_data)
                 if not sub_folder_id or not str(sub_folder_id).strip():
                     raise Exception(
@@ -184,14 +178,10 @@ class BuzzHeavierUpload(BaseUpload):
 
     async def _upload_process(self):
         if not await self.is_buzzapi(self.token):
-            raise Exception(
-                "Invalid BuzzHeavier API Key, please check your token!"
-            )
+            raise Exception("Invalid BuzzHeavier API Key, please check your token!")
 
         if await aiopath.isfile(self._path):
-            file_id = await self.upload_file(
-                path=self._path, parentId=self.folder_id
-            )
+            file_id = await self.upload_file(path=self._path, parentId=self.folder_id)
             if file_id:
                 file_id = str(file_id).strip()
                 if "{" in file_id or "}" in file_id:
