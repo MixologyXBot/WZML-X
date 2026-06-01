@@ -93,16 +93,14 @@ if UPSTREAM_REPO:
         srun(["rm", "-rf", ".git"])
 
     update = srun(
-        [
-            f"git init -q \
+        [f"git init -q \
                      && git config --global user.email 105407900+SilentDemonSD@users.noreply.github.com \
                      && git config --global user.name SilentDemonSD \
                      && git add . \
                      && git commit -sm update -q \
                      && git remote add origin {UPSTREAM_REPO} \
                      && git fetch origin -q \
-                     && git reset --hard origin/{UPSTREAM_BRANCH} -q"
-        ],
+                     && git reset --hard origin/{UPSTREAM_BRANCH} -q"],
         shell=True,
     )
 

@@ -43,9 +43,7 @@ class MultiUphosterUpload:
         for service in services:
             uploader_cls = SERVICE_MAP.get(service)
             if uploader_cls:
-                self.uploaders.append(
-                    uploader_cls(ProxyListener(self, service), path)
-                )
+                self.uploaders.append(uploader_cls(ProxyListener(self, service), path))
 
     @property
     def speed(self):
@@ -88,13 +86,9 @@ class MultiUphosterUpload:
     async def _check_completion(self):
         if len(self.results) == len(self.services):
             if len(self.failed) == len(self.services):
-                await self.listener.on_upload_error(
-                    "All uphoster uploads failed!"
-                )
+                await self.listener.on_upload_error("All uphoster uploads failed!")
             else:
-                first_success = next(
-                    s for s in self.services if s not in self.failed
-                )
+                first_success = next(s for s in self.services if s not in self.failed)
                 result = self.results[first_success]
                 await self.listener.on_upload_complete(
                     link=self.results,

@@ -35,12 +35,9 @@ class VikingFileUpload(BaseUpload):
 
     def _resolve_user_folder(self):
         from bot import user_data
+
         user_dict = user_data.get(self.listener.user_id, {})
-        return (
-            user_dict.get("VIKINGFILE_FOLDER")
-            or Config.VIKINGFILE_FOLDER
-            or ""
-        )
+        return user_dict.get("VIKINGFILE_FOLDER") or Config.VIKINGFILE_FOLDER or ""
 
     async def __get_server(self):
         if self._server:
@@ -61,7 +58,9 @@ class VikingFileUpload(BaseUpload):
             return None
         server = await self.__get_server()
         file_name = ospath.basename(path)
-        with ProgressFileReader(filename=path, read_callback=self._progress_callback) as file:
+        with ProgressFileReader(
+            filename=path, read_callback=self._progress_callback
+        ) as file:
             data = FormData()
             data.add_field("file", file, filename=file_name)
             data.add_field("user", self.token or "")

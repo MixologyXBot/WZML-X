@@ -66,7 +66,7 @@ class JDownloaderHelper:
         )
         try:
             await wait_for(self.event.wait(), timeout=self._timeout)
-        except:
+        except Exception:
             await edit_message(self._reply_to, "Timed Out. Task has been cancelled!")
             self.listener.is_cancelled = True
             self.event.set()

@@ -36,18 +36,13 @@ class DevUploadsUpload(BaseUpload):
 
     def _resolve_user_folder(self):
         from bot import user_data
+
         user_dict = user_data.get(self.listener.user_id, {})
-        return (
-            user_dict.get("DEVUPLOADS_FOLDER")
-            or Config.DEVUPLOADS_FOLDER
-            or ""
-        )
+        return user_dict.get("DEVUPLOADS_FOLDER") or Config.DEVUPLOADS_FOLDER or ""
 
     async def __get_upload_server(self):
         async with ClientSession() as session:
-            async with session.get(
-                f"{self.server_api_url}?key={self.token}"
-            ) as resp:
+            async with session.get(f"{self.server_api_url}?key={self.token}") as resp:
                 result = await resp.json(content_type=None)
                 if result.get("status") == 200:
                     self._sess_id = result.get("sess_id")
@@ -75,7 +70,9 @@ class DevUploadsUpload(BaseUpload):
         if self.listener.is_cancelled:
             return None
         file_name = ospath.basename(path)
-        with ProgressFileReader(filename=path, read_callback=self._progress_callback) as file:
+        with ProgressFileReader(
+            filename=path, read_callback=self._progress_callback
+        ) as file:
             data = FormData()
             data.add_field("sess_id", self._sess_id)
             data.add_field("utype", "reg")
@@ -124,7 +121,9 @@ class DevUploadsUpload(BaseUpload):
                 "DevUploads API Key not configured! Please set DEVUPLOADS_KEY."
             )
         if not await self.__get_upload_server():
-            raise Exception("Invalid DevUploads API Key or failed to get upload server!")
+            raise Exception(
+                "Invalid DevUploads API Key or failed to get upload server!"
+            )
 
     async def _upload_process(self):
         if await aiopath.isfile(self._path):

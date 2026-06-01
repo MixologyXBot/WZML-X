@@ -90,9 +90,7 @@ class BaseUpload:
     async def cancel_task(self):
         self.listener.is_cancelled = True
         if self.is_uploading:
-            LOGGER.info(
-                f"Cancelling {self.SERVICE_NAME} Upload: {self.listener.name}"
-            )
+            LOGGER.info(f"Cancelling {self.SERVICE_NAME} Upload: {self.listener.name}")
             await self.listener.on_upload_error(
                 f"{self.SERVICE_NAME} upload has been cancelled!"
             )
