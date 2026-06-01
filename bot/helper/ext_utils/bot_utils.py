@@ -4,6 +4,7 @@ from asyncio import (
     run_coroutine_threadsafe,
     sleep,
 )
+from pyrogram.enums import ButtonStyle
 from asyncio.subprocess import PIPE
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, wraps
@@ -43,22 +44,6 @@ class SetInterval:
 def _build_command_usage(help_dict, command_key):
     buttons = ButtonMaker()
     cmd_list = list(help_dict.keys())[1:]
-    temp_store = []
-    cmd_pages = [cmd_list[i : i + 10] for i in range(0, len(cmd_list), 10)]
-    for i in range(1, len(cmd_pages) + 1):
-        for name in cmd_pages[i]:
-            buttons.data_button(name, f"help {command_key} {name}")
-        buttons.data_button("Prev", f"help pre {command_key} {i - 1}")
-        buttons.data_button("Next", f"help nex {command_key} {i + 1}")
-        buttons.data_button("Close", "help close", "footer")
-        temp_store.append(buttons.build_menu(2))
-    COMMAND_USAGE[command_key] = [help_dict["main"], *temp_store]
-    buttons.reset()
-
-
-def _build_command_usage(help_dict, command_key):
-    buttons = ButtonMaker()
-    cmd_list = list(help_dict.keys())[1:]
     cmd_pages = [cmd_list[i : i + 10] for i in range(0, len(cmd_list), 10)]
     temp_store = []
 
@@ -70,7 +55,7 @@ def _build_command_usage(help_dict, command_key):
                 buttons.data_button("⫷", f"help pre {command_key} {i - 1}")
             if i < len(cmd_pages) - 1:
                 buttons.data_button("⫸", f"help nex {command_key} {i + 1}")
-        buttons.data_button("Close", "help close", "footer")
+        buttons.data_button("Close", "help close", "footer", style=ButtonStyle.DANGER)
         temp_store.append(buttons.build_menu(2))
         buttons.reset()
 
@@ -101,14 +86,15 @@ def bt_selection_buttons(id_):
     pin = "".join([n for n in id_ if n.isdigit()][:4])
     buttons = ButtonMaker()
     if Config.WEB_PINCODE:
-        buttons.url_button("Select Files", f"{Config.BASE_URL}/app/files?gid={id_}")
+        buttons.url_button("Select Files", f"{Config.BASE_URL}/app/files?gid={id_}", style=ButtonStyle.PRIMARY)
         buttons.data_button("Pincode", f"sel pin {gid} {pin}")
     else:
         buttons.url_button(
-            "Select Files", f"{Config.BASE_URL}/app/files?gid={id_}&pin={pin}"
+            "Select Files", f"{Config.BASE_URL}/app/files?gid={id_}&pin={pin}",
+            style=ButtonStyle.PRIMARY,
         )
-    buttons.data_button("Done Selecting", f"sel done {gid} {id_}")
-    buttons.data_button("Cancel", f"sel cancel {gid}")
+    buttons.data_button("Done Selecting", f"sel done {gid} {id_}", style=ButtonStyle.SUCCESS)
+    buttons.data_button("Cancel", f"sel cancel {gid}", style=ButtonStyle.DANGER)
     return buttons.build_menu(2)
 
 

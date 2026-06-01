@@ -1,4 +1,5 @@
 from asyncio import gather, sleep, wait_for, TimeoutError
+from pyrogram.enums import ButtonStyle
 from platform import platform, version
 from re import search as research
 from time import time
@@ -229,7 +230,7 @@ async def get_stats(event, key="home"):
         btns.data_button("🔄 Refresh", f"stats {user_id} systasks", "header")
 
     btns.data_button("Back", f"stats {user_id} home", "footer")
-    btns.data_button("Close", f"stats {user_id} close", "footer")
+    btns.data_button("Close", f"stats {user_id} close", "footer", style=ButtonStyle.DANGER)
     return msg, btns.build_menu(8 if key == "systasks" else 2)
 
 
