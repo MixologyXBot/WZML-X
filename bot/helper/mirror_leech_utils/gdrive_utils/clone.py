@@ -1,4 +1,5 @@
 from googleapiclient.errors import HttpError
+from json import loads as json_loads
 from logging import getLogger
 from os import path as ospath
 from tenacity import (
@@ -141,7 +142,12 @@ class GoogleDriveClone(GoogleDriveHelper):
             )
         except HttpError as err:
             if err.resp.get("content-type", "").startswith("application/json"):
-                reason = eval(err.content).get("error").get("errors")[0].get("reason")
+                reason = (
+                    json_loads(err.content)
+                    .get("error")
+                    .get("errors")[0]
+                    .get("reason")
+                )
                 if reason not in [
                     "userRateLimitExceeded",
                     "dailyLimitExceeded",
