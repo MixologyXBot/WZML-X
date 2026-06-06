@@ -1,4 +1,5 @@
 import re
+from ast import literal_eval
 from contextlib import suppress
 from PIL import Image
 from hashlib import md5
@@ -65,7 +66,7 @@ async def download_image_thumb(url):
     )
     try:
         async with AsyncClient(
-            verify=False, follow_redirects=True, timeout=30
+            follow_redirects=True, timeout=30
         ) as client:
             # HEAD request to check content type and size
             try:
@@ -143,7 +144,10 @@ async def get_media_info(path, extra_info=False):
         LOGGER.error(f"Get Media Info: {e}. Mostly File not found! - File: {path}")
         return (0, "", "", "") if extra_info else (0, None, None)
     if result[0] and result[2] == 0:
-        ffresult = eval(result[0])
+        ffresult = literal_eval(result[0])
+        if not isinstance(ffresult, dict):
+            LOGGER.error(f"get_media_info: unexpected ffprobe payload: {result}")
+            return (0, "", "", "") if extra_info else (0, None, None)
         fields = ffresult.get("format")
         if fields is None:
             LOGGER.error(f"get_media_info: {result}")
@@ -215,7 +219,7 @@ async def get_document_type(path):
             is_video = True
         return is_video, is_audio, is_image
     if result[0] and result[2] == 0:
-        fields = eval(result[0]).get("streams")
+        fields = literal_eval(result[0]).get("streams")
         if fields is None:
             LOGGER.error(f"get_document_type: {result}")
             return is_video, is_audio, is_image

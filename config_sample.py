@@ -26,6 +26,7 @@ USE_SERVICE_ACCOUNTS = False
 NAME_SWAP = ""
 FFMPEG_CMDS = {}
 UPLOAD_PATHS = {}
+WZMLX_WEB_SECRET=""
 
 # Hyper Tg Downloader
 HELPER_TOKENS = ""

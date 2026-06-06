@@ -1,4 +1,5 @@
 from asyncio import sleep
+from ast import literal_eval
 from pyrogram.enums import ButtonStyle
 from functools import partial
 from html import escape
@@ -1078,7 +1079,9 @@ async def add_one(_, message, option, rfunc):
     value = message.text
     if value.startswith("{") and value.endswith("}"):
         try:
-            value = eval(value)
+            value = literal_eval(value)
+            if not isinstance(value, dict):
+                raise ValueError("Expected a dict")
             if user_dict[option]:
                 user_dict[option].update(value)
             else:
@@ -1190,7 +1193,9 @@ async def set_option(_, message, option, rfunc):
     elif option in ["UPLOAD_PATHS", "FFMPEG_CMDS", "YT_DLP_OPTIONS"]:
         if value.startswith("{") and value.endswith("}"):
             try:
-                value = eval(sub(r"\s+", " ", value))
+                value = literal_eval(sub(r"\s+", " ", value))
+                if not isinstance(value, dict):
+                    raise ValueError("Expected a dict")
             except Exception as e:
                 await send_message(message, str(e))
                 return

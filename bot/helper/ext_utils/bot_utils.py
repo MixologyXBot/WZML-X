@@ -4,6 +4,10 @@ from asyncio import (
     run_coroutine_threadsafe,
     sleep,
 )
+from hashlib import sha256
+from hmac import new as hmac_new
+from secrets import token_bytes
+from time import time
 from pyrogram.enums import ButtonStyle
 from asyncio.subprocess import PIPE
 from concurrent.futures import ThreadPoolExecutor
@@ -20,6 +24,81 @@ from .help_messages import (
     YT_HELP_DICT,
 )
 from .telegraph_helper import telegraph
+
+_SERVICE_PWD_SALT = b"wzmlx_v3_service_pwd_salt"
+_PIN_TOKEN_SALT = b"wzmlx_v3_pin_token_salt"
+_PIN_TOKEN_TTL = 600
+_PIN_ALLOWED_CHARS = frozenset(
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+)
+
+_cached_secret_bytes = None
+
+
+def _shared_secret():
+    global _cached_secret_bytes
+    secret = Config.WZMLX_WEB_SECRET
+    if not secret:
+        if _cached_secret_bytes is None:
+            _cached_secret_bytes = token_bytes(32)
+        return _cached_secret_bytes
+    return secret.encode("utf-8") if isinstance(secret, str) else secret
+
+
+def derive_service_password(bot_id, service):
+    if not bot_id:
+        bot_id = "0"
+    secret = _shared_secret()
+    digest = hmac_new(
+        _SERVICE_PWD_SALT,
+        f"{bot_id}:{service}".encode("utf-8"),
+        sha256,
+    )
+    digest.update(secret)
+    raw = digest.hexdigest()
+    return raw[:20] + raw[-4:]
+
+
+def derive_pin_token(gid, bot_id, issued_at=None):
+    if not gid:
+        return None
+    issued = int(issued_at if issued_at is not None else time())
+    payload = f"{gid}|{bot_id}|{issued}"
+    secret = _shared_secret()
+    sig = hmac_new(
+        _PIN_TOKEN_SALT,
+        payload.encode("utf-8"),
+        sha256,
+    ).hexdigest()[:24]
+    return f"{issued}.{sig}"
+
+
+def verify_pin_token(gid, token, bot_id):
+    if not gid or not token:
+        return False
+    try:
+        issued_str, sig = token.split(".", 1)
+        issued = int(issued_str)
+    except (ValueError, AttributeError):
+        return False
+    if not all(c in _PIN_ALLOWED_CHARS for c in sig):
+        return False
+    if abs(int(time()) - issued) > _PIN_TOKEN_TTL:
+        return False
+    expected = hmac_new(
+        _PIN_TOKEN_SALT,
+        f"{gid}|{bot_id}|{issued}".encode("utf-8"),
+        sha256,
+    ).hexdigest()[:24]
+    return hmac_new(
+        _PIN_TOKEN_SALT,
+        expected.encode("utf-8"),
+        sha256,
+    ).hexdigest() == hmac_new(
+        _PIN_TOKEN_SALT,
+        sig.encode("utf-8"),
+        sha256,
+    ).hexdigest()
 
 COMMAND_USAGE = {}
 
@@ -83,7 +162,8 @@ def compare_versions(v1, v2):
 
 def bt_selection_buttons(id_):
     gid = id_[:12] if len(id_) > 25 else id_
-    pin = "".join([n for n in id_ if n.isdigit()][:4])
+    bot_id = str(getattr(Config, "BOT_TOKEN", "").split(":", 1)[0] or "0")
+    token = derive_pin_token(id_, bot_id)
     buttons = ButtonMaker()
     if Config.WEB_PINCODE:
         buttons.url_button(
@@ -91,11 +171,11 @@ def bt_selection_buttons(id_):
             f"{Config.BASE_URL}/app/files?gid={id_}",
             style=ButtonStyle.PRIMARY,
         )
-        buttons.data_button("Pincode", f"sel pin {gid} {pin}")
+        buttons.data_button("Pincode", f"sel pin {gid} {token}")
     else:
         buttons.url_button(
             "Select Files",
-            f"{Config.BASE_URL}/app/files?gid={id_}&pin={pin}",
+            f"{Config.BASE_URL}/app/files?gid={id_}&pin={token}",
             style=ButtonStyle.PRIMARY,
         )
     buttons.data_button(
@@ -237,7 +317,7 @@ def get_size_bytes(size):
 async def get_content_type(url):
     try:
         async with AsyncClient() as client:
-            response = await client.get(url, allow_redirects=True, verify=False)
+            response = await client.get(url, allow_redirects=True)
             return response.headers.get("Content-Type")
     except Exception:
         return None

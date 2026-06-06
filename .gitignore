@@ -22,4 +22,5 @@ downloads/*
 .github/agents/*
 graphify-out/*
 .graphify_*
+.agent*
 __pycache__/
