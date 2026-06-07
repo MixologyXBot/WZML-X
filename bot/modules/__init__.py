@@ -17,6 +17,7 @@ from .gd_count import count_node
 from .gd_delete import delete_file
 from .gd_search import gdrive_search, select_type
 from .help import arg_usage, bot_help
+from .images import picture_add, pictures, pics_callback
 from .mediainfo import mediainfo
 from .broadcast import broadcast
 from .mirror_leech import (
@@ -98,6 +99,9 @@ __all__ = [
     "start_cb",
     "login",
     "bot_help",
+    "picture_add",
+    "pictures",
+    "pics_callback",
     "mediainfo",
     "broadcast",
     "ping",
