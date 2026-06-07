@@ -133,7 +133,9 @@ async def load_settings():
                 await database.db.settings.config.find_one(deploy_filter, {"_id": 0})
                 or {}
             )
-            config_dict.update(config_file)
+            for k, v in config_file.items():
+                if v:
+                    config_dict[k] = v
             if config_dict:
                 Config.load_dict(config_dict)
         else:
