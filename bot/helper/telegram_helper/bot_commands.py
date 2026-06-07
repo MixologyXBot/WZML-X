@@ -46,6 +46,8 @@ class BotCommands:
         "UnAuthorize": ["unauthorize", "ua"],
         "AddSudo": ["addsudo", "as"],
         "RmSudo": ["rmsudo", "rs"],
+        "BlackList": ["blacklist", "bl"],
+        "RmBlackList": ["rmblacklist", "rbl"],
         "BotSet": ["bsetting", "bs"],
         "UserSet": ["usetting", "us"],
         "Select": ["select", "sel"],
