@@ -1,4 +1,5 @@
 from ...ext_utils.status_utils import (
+    MirrorStatus,
     EngineStatus,
     get_readable_file_size,
     get_readable_time,
@@ -11,17 +12,20 @@ class MegaDownloadStatus:
         self._obj = obj
         self._gid = gid
         self._status = status
-        self._speed = 0
-        self._downloaded_bytes = 0
-        self._size = self.listener.size
+        self._init_size = self.listener.size
         self.engine = EngineStatus().STATUS_MEGA
 
     def name(self):
         return self.listener.name
 
+    def _size(self):
+        if self._status == "up" and hasattr(self._obj, "_size") and self._obj._size:
+            return self._obj._size
+        return self._init_size
+
     def progress_raw(self):
         try:
-            return round(self._downloaded_bytes / self._size * 100, 2)
+            return round(self._obj.downloaded_bytes / self._size() * 100, 2)
         except ZeroDivisionError:
             return 0.0
 
@@ -29,23 +33,26 @@ class MegaDownloadStatus:
         return f"{self.progress_raw()}%"
 
     def status(self):
-        return self._status
+        if self._status == "up":
+            return MirrorStatus.STATUS_UPLOAD
+        elif self._status == "dl":
+            return MirrorStatus.STATUS_DOWNLOAD
 
     def processed_bytes(self):
-        return get_readable_file_size(self._downloaded_bytes)
+        return get_readable_file_size(self._obj.downloaded_bytes)
 
     def eta(self):
         try:
-            seconds = (self._size - self._downloaded_bytes) / self._speed
+            seconds = (self._size() - self._obj.downloaded_bytes) / max(self._obj.speed, 1)
             return get_readable_time(seconds)
         except ZeroDivisionError:
             return "-"
 
     def size(self):
-        return get_readable_file_size(self._size)
+        return get_readable_file_size(self._size())
 
     def speed(self):
-        return f"{get_readable_file_size(self._speed)}/s"
+        return f"{get_readable_file_size(self._obj.speed)}/s"
 
     def gid(self):
         return self._gid
