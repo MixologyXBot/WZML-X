@@ -2334,7 +2334,7 @@ def swisstransfer(link):
     for file in files:
         file_uuid = file["UUID"]
         file_name = file["fileName"]
-        file["fileSizeInBytes"]
+        #file_size = file["fileSizeInBytes"]
 
         token = gettoken(password, container_uuid, file_uuid)
         if not token:
