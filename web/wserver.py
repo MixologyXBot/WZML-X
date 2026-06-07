@@ -30,6 +30,17 @@ from aiohttp import ClientSession
 
 getLogger("httpx").setLevel(WARNING)
 getLogger("aiohttp").setLevel(WARNING)
+getLogger("uvicorn").setLevel(WARNING)
+getLogger("uvicorn.access").setLevel(WARNING)
+
+basicConfig(
+    format="[%(asctime)s] [%(levelname)s] - %(message)s",
+    datefmt="%d-%b-%y %I:%M:%S %p",
+    handlers=[FileHandler("log.txt"), StreamHandler()],
+    level=INFO,
+)
+
+LOGGER = getLogger(__name__)
 
 _SAFE_PATH = re_compile(r"^[A-Za-z0-9_./-]+$")
 _SAFE_GID = re_compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -56,8 +67,18 @@ def _load_config():
     return bot_token, secret
 
 
+def _resolve_bot_id(token):
+    if not token or not isinstance(token, str):
+        return "0"
+    token = token.strip()
+    if not token:
+        return "0"
+    return (token.split(":", 1)[0] or "0").strip()
+
+
 _BOT_TOKEN, _WEB_SECRET = _load_config()
-_BOT_ID = (_BOT_TOKEN.split(":", 1)[0] or "0").strip()
+_BOT_ID = _resolve_bot_id(_BOT_TOKEN)
+LOGGER.info(f"[PIN-DBG] wserver startup _BOT_ID={_BOT_ID} (token first-12={_BOT_TOKEN[:12]})")
 
 
 def _service_pwd(service):
@@ -124,12 +145,19 @@ def _verify_pin(gid, pin):
     from hashlib import sha256
     from hmac import new as hmac_new
     if not gid or not pin:
+        LOGGER.info(f"[PIN-DBG] verify_pin rejected: empty gid or pin (gid={gid!r} pin_len={len(pin) if pin else 0})")
         return False
     if not _SAFE_PIN.match(pin):
+        LOGGER.info(f"[PIN-DBG] verify_pin rejected: bad pin format (pin={pin!r})")
         return False
     expected = _derive_pin(gid)
     if not expected:
+        LOGGER.info(f"[PIN-DBG] verify_pin rejected: derive_pin returned empty (gid={gid!r})")
         return False
+    LOGGER.info(
+        f"[PIN-DBG] verify_pin gid={gid[:12]}{'...' if len(gid) > 12 else ''} "
+        f"bot_id={_BOT_ID} expected={expected[:2]}** got={pin[:2]}**"
+    )
     return hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest() == hmac_new(
         _PIN_SALT, pin.encode(), sha256
     ).hexdigest()
@@ -162,15 +190,6 @@ app = FastAPI(lifespan=lifespan)
 
 
 templates = Jinja2Templates(directory="web/templates/")
-
-basicConfig(
-    format="[%(asctime)s] [%(levelname)s] - %(message)s",  #  [%(filename)s:%(lineno)d]
-    datefmt="%d-%b-%y %I:%M:%S %p",
-    handlers=[FileHandler("log.txt"), StreamHandler()],
-    level=INFO,
-)
-
-LOGGER = getLogger(__name__)
 
 
 async def re_verify(paused, resumed, hash_id):
