@@ -155,8 +155,8 @@ def _verify_pin(gid, pin):
         LOGGER.info(f"[PIN-DBG] verify_pin rejected: derive_pin returned empty (gid={gid!r})")
         return False
     LOGGER.info(
-        f"[PIN-DBG] verify_pin gid={gid[:12]}{'...' if len(gid) > 12 else ''} "
-        f"bot_id={_BOT_ID} expected={expected[:2]}** got={pin[:2]}**"
+        f"[PIN-DBG] verify_pin gid={gid!r} "
+        f"bot_id={_BOT_ID} expected={expected!r} got={pin!r} match={expected == pin}"
     )
     return hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest() == hmac_new(
         _PIN_SALT, pin.encode(), sha256
@@ -243,6 +243,11 @@ async def files(request: Request):
 )
 async def handle_torrent(request: Request):
     params = request.query_params
+    LOGGER.info(
+        f"[PIN-DBG] handle_torrent method={request.method} "
+        f"gid={params.get('gid', '')!r} pin={params.get('pin', '')!r} "
+        f"mode={params.get('mode', '')!r} bot_id={_BOT_ID}"
+    )
 
     if not (gid := params.get("gid")):
         return JSONResponse(
