@@ -34,6 +34,7 @@ class TelegramDownloadHelper:
         self._id = ""
         self.session = ""
         self._hyper_dl = len(TgClient.helper_bots) != 0 and Config.LEECH_DUMP_CHAT
+        self._hyper_dl_instance = None
 
     @property
     def speed(self):
@@ -87,12 +88,14 @@ class TelegramDownloadHelper:
             # TODO : Add support for user session ( Huh ??)
             if self._hyper_dl:
                 try:
-                    download = await HyperTGDownload().download_media(
+                    self._hyper_dl_instance = HyperTGDownload()
+                    download = await self._hyper_dl_instance.download_media(
                         message,
                         file_name=path,
                         progress=self._on_download_progress,
                         dump_chat=Config.LEECH_DUMP_CHAT,
                     )
+                    self._hyper_dl_instance = None
                 except Exception:
                     if getattr(Config, "USER_TRANSMISSION", False):
                         try:
@@ -219,4 +222,10 @@ class TelegramDownloadHelper:
         LOGGER.info(
             f"Cancelling download on user request: name: {self._listener.name} id: {self._id}"
         )
+        if self._hyper_dl_instance:
+            try:
+                await self._hyper_dl_instance.cancel()
+            except Exception:
+                pass
+            self._hyper_dl_instance = None
         await self._on_download_error("Stopped by user!")

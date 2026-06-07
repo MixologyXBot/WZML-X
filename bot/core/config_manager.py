@@ -82,6 +82,8 @@ class Config:
     MEDIA_GROUP = False
     HYBRID_LEECH = True
     HYPER_THREADS = 0
+    HYPER_PIPELINE = 4
+    HYPER_WRITE_BUFFER = 33554432
     HYDRA_IP = ""
     HYDRA_API_KEY = ""
     NAME_SWAP = ""
