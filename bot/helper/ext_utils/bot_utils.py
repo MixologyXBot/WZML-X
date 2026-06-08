@@ -163,7 +163,6 @@ def bt_selection_buttons(id_):
     gid = id_[:12] if len(id_) > 25 else id_
     bot_id = _resolve_bot_id()
     pin = derive_pin(id_, bot_id)
-    LOGGER.info(f"[PIN-DBG] bt_selection_buttons gid={gid} bot_id={bot_id} pin={pin[:2]}**")
     buttons = ButtonMaker()
     if Config.WEB_PINCODE:
         buttons.url_button(

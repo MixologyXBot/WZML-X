@@ -81,7 +81,15 @@ class HyperTGDownload:
 
     async def _fetch_ref(self, idx, client):
         msg = await client.get_messages(self.dump_chat, self.message.id)
-        fid = FileId.decode(getattr(await self._media_of(msg), "file_id", ""))
+        if msg is None:
+            raise ValueError(
+                f"dump chat {self.dump_chat} msg {self.message.id} not found"
+            )
+        media = self._media_of(msg)
+        fid_str = getattr(media, "file_id", None)
+        if not fid_str:
+            raise ValueError(f"no file_id in media from dump chat msg {self.message.id}")
+        fid = FileId.decode(fid_str)
         self._ref_cache[idx] = fid
         return fid
 

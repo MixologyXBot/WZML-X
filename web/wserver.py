@@ -78,7 +78,6 @@ def _resolve_bot_id(token):
 
 _BOT_TOKEN, _WEB_SECRET = _load_config()
 _BOT_ID = _resolve_bot_id(_BOT_TOKEN)
-LOGGER.info(f"[PIN-DBG] wserver startup _BOT_ID={_BOT_ID} (token first-12={_BOT_TOKEN[:12]})")
 
 
 def _service_pwd(service):
@@ -145,19 +144,12 @@ def _verify_pin(gid, pin):
     from hashlib import sha256
     from hmac import new as hmac_new
     if not gid or not pin:
-        LOGGER.info(f"[PIN-DBG] verify_pin rejected: empty gid or pin (gid={gid!r} pin_len={len(pin) if pin else 0})")
         return False
     if not _SAFE_PIN.match(pin):
-        LOGGER.info(f"[PIN-DBG] verify_pin rejected: bad pin format (pin={pin!r})")
         return False
     expected = _derive_pin(gid)
     if not expected:
-        LOGGER.info(f"[PIN-DBG] verify_pin rejected: derive_pin returned empty (gid={gid!r})")
         return False
-    LOGGER.info(
-        f"[PIN-DBG] verify_pin gid={gid!r} "
-        f"bot_id={_BOT_ID} expected={expected!r} got={pin!r} match={expected == pin}"
-    )
     return hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest() == hmac_new(
         _PIN_SALT, pin.encode(), sha256
     ).hexdigest()
@@ -243,11 +235,6 @@ async def files(request: Request):
 )
 async def handle_torrent(request: Request):
     params = request.query_params
-    LOGGER.info(
-        f"[PIN-DBG] handle_torrent method={request.method} "
-        f"gid={params.get('gid', '')!r} pin={params.get('pin', '')!r} "
-        f"mode={params.get('mode', '')!r} bot_id={_BOT_ID}"
-    )
 
     if not (gid := params.get("gid")):
         return JSONResponse(
