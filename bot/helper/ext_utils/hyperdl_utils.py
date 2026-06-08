@@ -366,14 +366,18 @@ class HyperTGDownload:
         ranges = [(i * psz, min((i + 1) * psz, self.file_size)) for i in range(n_parts)]
         assigns = [cidx[i % n_use] for i in range(n_parts)]
 
+        unique_clients = set(assigns)
+        fid_map = {}
         try:
-            fid = await self._fetch_ref(cidx[0], self.clients[cidx[0]])
+            for ci in unique_clients:
+                fid_map[ci] = await self._fetch_ref(ci, self.clients[ci])
         except Exception as e:
             LOGGER.error(f"HyperDL ref fail: {e}")
             return None
 
+        first_fid = fid_map[assigns[0]]
         try:
-            await self._warmup(range(n_parts), fid.dc_id)
+            await self._warmup(range(n_parts), first_fid.dc_id)
         except Exception as e:
             LOGGER.warning(f"HyperDL warmup err: {e}")
 
@@ -382,7 +386,9 @@ class HyperTGDownload:
 
         try:
             for i, (s, e) in enumerate(ranges):
-                self._tasks.append(create_task(self._part(s, e, i, assigns[i], fid)))
+                self._tasks.append(
+                    create_task(self._part(s, e, i, assigns[i], fid_map[assigns[i]]))
+                )
             if progress:
                 self._prog_task = create_task(self._progress(progress, progress_args))
             parts = list(await gather(*self._tasks))
