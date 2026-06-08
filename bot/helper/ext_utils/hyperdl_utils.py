@@ -7,13 +7,13 @@ from asyncio import (
     sleep,
     wait,
     wait_for,
-    TimeoutError as AsyncTimeoutError,
     Event,
     FIRST_COMPLETED,
+    create_subprocess_exec,
 )
 from datetime import datetime
 from mimetypes import guess_extension
-from os import path as ospath, remove as os_remove, sendfile as os_sendfile, fstat
+from os import path as ospath, remove as os_remove
 from pathlib import Path
 from re import sub
 from sys import argv
@@ -30,8 +30,6 @@ from pyrogram.errors import (
     FileMigrate,
     FileReferenceExpired,
     FileReferenceInvalid,
-    PeerIdInvalid,
-    ChannelInvalid,
 )
 from pyrogram.file_id import PHOTO_TYPES, FileId, FileType, ThumbnailSource
 from pyrogram.session import Auth, Session
@@ -41,7 +39,7 @@ from ... import LOGGER
 from ...core.config_manager import Config
 from ...core.tg_client import TgClient
 
-CHUNK_SIZE = 512 * 1024
+CHUNK_SIZE = 256 * 1024
 WRITE_BUF = 32 * 1024 * 1024
 
 
@@ -218,14 +216,15 @@ class HyperTGDownload:
         last_byte = end - 1
         window = self.pipeline_depth
         min_window = 2
-        max_window = window * 3
+        max_window = window * 4
         inflight = set()
         cur_off = first_chunk_off
         seq = 0
         consecutive_ok = 0
+        flood_count = 0
 
         async def _req(off, s):
-            nonlocal sess, loc, window, consecutive_ok
+            nonlocal sess, loc, window, consecutive_ok, flood_count
             for attempt in range(3):
                 try:
                     result = await self._do_req(sess, loc, off, attempt)
@@ -239,9 +238,13 @@ class HyperTGDownload:
                         continue
                     return s, off, result
                 except (FloodWait, FloodPremiumWait) as e:
-                    window = max(min_window, window // 2)
-                    consecutive_ok = 0
-                    await sleep(e.value + 1 if hasattr(e, "value") else 5)
+                    flood_count += 1
+                    wait_val = e.value if hasattr(e, "value") else 5
+                    if wait_val > 10 or flood_count >= 3:
+                        window = max(min_window, window - max(1, window // 4))
+                        consecutive_ok = 0
+                        flood_count = 0
+                    await sleep(wait_val + 1)
                 except CancelledError:
                     raise
             raise RuntimeError(f"Failed after 3 attempts at offset {off}")
@@ -258,14 +261,13 @@ class HyperTGDownload:
                     break
                 done_set, inflight = await wait(inflight, return_when=FIRST_COMPLETED)
                 consecutive_ok += len(done_set)
-                if consecutive_ok >= window * 2:
-                    window = min(window + 1, max_window)
+                if consecutive_ok >= window:
+                    window = min(window + 2, max_window)
                     consecutive_ok = 0
                 for f in done_set:
                     s, roff, chunk = f.result()
                     if not chunk:
                         continue
-                    clen = len(chunk)
                     if roff == first_chunk_off and roff + CHUNK_SIZE >= end:
                         chunk = chunk[first_trim:last_byte - roff + 1]
                     elif roff == first_chunk_off:
@@ -331,27 +333,29 @@ class HyperTGDownload:
 
     async def _assemble(self, parts, dest):
         ordered = [p for _, p in sorted(parts)]
+        cat_cmd = " ".join(f'"{p}"' for p in ordered)
         try:
-            with open(dest, "wb") as dst:
+            proc = await create_subprocess_exec(
+                "sh", "-c", f'cat {cat_cmd} > "{dest}"',
+            )
+            await proc.wait()
+            if proc.returncode == 0 and ospath.exists(dest):
                 for part in ordered:
-                    with open(part, "rb") as src:
-                        sfd, dfd = src.fileno(), dst.fileno()
-                        st = fstat(sfd)
-                        off = 0
-                        while off < st.st_size:
-                            sent = os_sendfile(dfd, sfd, off, st.st_size - off)
-                            if sent == 0:
-                                break
-                            off += sent
-        except (AttributeError, OSError, ValueError):
-            async with aiopen(dest, "wb") as dst:
-                for part in ordered:
-                    async with aiopen(part, "rb") as src:
-                        while True:
-                            c = await src.read(8 * 1024 * 1024)
-                            if not c:
-                                break
-                            await dst.write(c)
+                    try:
+                        os_remove(part)
+                    except Exception:
+                        pass
+                return dest
+        except Exception:
+            pass
+        async with aiopen(dest, "wb") as dst:
+            for part in ordered:
+                async with aiopen(part, "rb") as src:
+                    while True:
+                        c = await src.read(8 * 1024 * 1024)
+                        if not c:
+                            break
+                        await dst.write(c)
         for part in ordered:
             try:
                 os_remove(part)
