@@ -189,6 +189,7 @@ DEFAULT_DESP = {
     "HYBRID_LEECH": "Use both premium and normal upload methods for speed. Default: True.",
     "HYPER_THREADS": "Number of parallel download parts (clients). 0 = auto.",
     "HYPER_PIPELINE": "Concurrent GetFile requests per HyperDL part. Default: 4.",
+    "HYPER_CHUNK": "HyperDL working chunk size in bytes. Default: 256 * 1024 (256KB).",
     "HYDRA_IP": "Hydra API IP address for search.",
     "HYDRA_API_KEY": "Hydra API key for search.",
     "NAME_SWAP": "Rename files using pattern. Format: old:new|old2:new2.",

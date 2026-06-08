@@ -37,7 +37,8 @@ from ... import LOGGER
 from ...core.config_manager import Config
 from ...core.tg_client import TgClient
 
-CHUNK_SIZE = 512 * 1024
+def _chunk_size():
+    return Config.HYPER_CHUNK
 
 
 def _pick_clients(wl, clients, count):
@@ -187,7 +188,7 @@ class HyperTGDownload:
             r = await wait_for(
                 sess.invoke(raw.functions.upload.GetFile(
                     precise=True, cdn_supported=False,
-                    location=location, offset=off, limit=CHUNK_SIZE,
+                    location=location, offset=off, limit=_chunk_size(),
                 )),
                 timeout=30,
             )
@@ -207,7 +208,7 @@ class HyperTGDownload:
     async def _pipeline_fetch(self, idx, location, start, end, fid, queue):
         sess = await self._get_session(idx, fid.dc_id)
         loc = location
-        first_chunk_off = start - (start % CHUNK_SIZE)
+        first_chunk_off = start - (start % _chunk_size())
         first_trim = start - first_chunk_off
         last_byte = end - 1
         window = self.pipeline_depth
@@ -251,7 +252,7 @@ class HyperTGDownload:
                     if self._cancel.is_set():
                         raise CancelledError
                     inflight.add(ensure_future(_req(cur_off, seq)))
-                    cur_off += CHUNK_SIZE
+                    cur_off += _chunk_size()
                     seq += 1
                 if not inflight:
                     break
@@ -264,11 +265,11 @@ class HyperTGDownload:
                     s, roff, chunk = f.result()
                     if not chunk:
                         continue
-                    if roff == first_chunk_off and roff + CHUNK_SIZE >= end:
+                    if roff == first_chunk_off and roff + _chunk_size() >= end:
                         chunk = chunk[first_trim:last_byte - roff + 1]
                     elif roff == first_chunk_off:
                         chunk = chunk[first_trim:]
-                    elif roff + CHUNK_SIZE > end:
+                    elif roff + _chunk_size() > end:
                         chunk = chunk[:end - roff]
                     await queue.put((roff, chunk))
         except CancelledError:
@@ -362,7 +363,7 @@ class HyperTGDownload:
         n_use = min(self.num_parts, self.num_clients)
         cidx = _pick_clients(self.work_loads, self.clients, n_use)
 
-        min_part = 5 * 1024 * 1024
+        min_part = 1 * 1024 * 1024
         n_parts = min(n_use, max(1, self.file_size // min_part)) if self.file_size >= min_part else 1
         psz = self.file_size // n_parts if n_parts > 0 else self.file_size
         ranges = [(i * psz, min((i + 1) * psz, self.file_size)) for i in range(n_parts)]
