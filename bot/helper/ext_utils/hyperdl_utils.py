@@ -45,8 +45,9 @@ CHUNK_SIZE = 1024 * 1024
 WRITE_BUF = 32 * 1024 * 1024
 
 
-def _pick_clients(wl, num, count):
-    return sorted(range(num), key=lambda i: wl.get(i, 0))[:count]
+def _pick_clients(wl, clients, count):
+    keys = list(clients.keys())
+    return sorted(keys, key=lambda i: wl.get(i, 0))[:count]
 
 
 class HyperTGDownload:
@@ -376,7 +377,7 @@ class HyperTGDownload:
         final = ospath.abspath(sub("\\\\", "/", ospath.join(self.directory, self.file_name)))
 
         n_use = min(self.num_parts, self.num_clients)
-        cidx = _pick_clients(self.work_loads, self.num_clients, n_use)
+        cidx = _pick_clients(self.work_loads, self.clients, n_use)
 
         min_part = 10 * 1024 * 1024
         n_parts = min(n_use, max(1, self.file_size // min_part)) if self.file_size >= min_part else 1
