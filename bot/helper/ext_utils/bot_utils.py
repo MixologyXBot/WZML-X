@@ -487,19 +487,9 @@ def _build_command_map():
     return mapping
 
 
-_command_map = None
-
-
-def _get_command_map():
-    global _command_map
-    if _command_map is None:
-        _command_map = _build_command_map()
-    return _command_map
-
-
 def resolve_command(command_str):
     cmd_name = command_str.strip().lstrip("/").split(maxsplit=1)[0]
-    mapping = _get_command_map()
+    mapping = _build_command_map()
     handler = mapping.get(cmd_name)
     if handler is None and Config.CMD_SUFFIX:
         handler = mapping.get(cmd_name + Config.CMD_SUFFIX)

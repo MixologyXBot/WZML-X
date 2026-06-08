@@ -228,7 +228,7 @@ DEFAULT_DESP = {
     "USER_TIME_INTERVAL": "Cooldown between tasks per user in seconds. 0 = disabled.",
     "UPLOAD_PATHS": "Custom upload paths per extension. Dict format.",
     "UPSTREAM_REPO": "GitHub repo URL for bot updates.",
-    "UPSTREAM_BRANCH": "Branch for updates. Default: master.",
+    "UPSTREAM_BRANCH": "Branch for updates. Default: wzv3.",
     "UPDATE_PKGS": "Update pip packages on restart. Default: True.",
     "USENET_SERVERS": "Usenet server configurations. List of dicts.",
     "USER_SESSION_STRING": "Pyrogram session string for user account tasks.",
