@@ -409,7 +409,7 @@ class HyperTGDownload:
 
         first_fid = fid_map[assigns[0]]
         try:
-            await self._warmup(range(n_parts), first_fid.dc_id)
+            await self._warmup(unique_clients, first_fid.dc_id)
         except Exception as e:
             LOGGER.warning(f"HyperDL warmup err: {e}")
 
