@@ -116,7 +116,7 @@ class TaskListener(TaskConfig):
             )
         if (
             self.is_super_chat
-            and Config.INCOMPLETE_TASK_NOTIFIER
+            and Config.INC_TASK_NOTIFY
             and Config.DATABASE_URL
         ):
             await database.add_incomplete_task(
@@ -399,7 +399,7 @@ class TaskListener(TaskConfig):
     ):
         if (
             self.is_super_chat
-            and Config.INCOMPLETE_TASK_NOTIFIER
+            and Config.INC_TASK_NOTIFY
             and Config.DATABASE_URL
         ):
             await database.rm_complete_task(self.message.link)
@@ -624,7 +624,7 @@ class TaskListener(TaskConfig):
 
         if (
             self.is_super_chat
-            and Config.INCOMPLETE_TASK_NOTIFIER
+            and Config.INC_TASK_NOTIFY
             and Config.DATABASE_URL
         ):
             await database.rm_complete_task(self.message.link)
@@ -662,7 +662,7 @@ class TaskListener(TaskConfig):
 
         if (
             self.is_super_chat
-            and Config.INCOMPLETE_TASK_NOTIFIER
+            and Config.INC_TASK_NOTIFY
             and Config.DATABASE_URL
         ):
             await database.rm_complete_task(self.message.link)

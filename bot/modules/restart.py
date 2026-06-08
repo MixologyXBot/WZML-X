@@ -6,6 +6,7 @@ from sys import executable
 from aiofiles import open as aiopen
 from aiofiles.os import path as aiopath, remove
 from pytz import timezone
+from pyrogram.enums import ButtonStyle
 
 from bot.version import get_version
 
@@ -28,8 +29,8 @@ from ..helper.telegram_helper.message_utils import (
 @new_task
 async def restart_bot(_, message):
     buttons = button_build.ButtonMaker()
-    buttons.data_button("Yes!", "botrestart confirm")
-    buttons.data_button("No!", "botrestart cancel")
+    buttons.data_button("Yes!", "botrestart confirm", style=ButtonStyle.SUCCESS)
+    buttons.data_button("No!", "botrestart cancel", style=ButtonStyle.DANGER)
     button = buttons.build_menu(2)
     await send_message(
         message, "<i>Are you really sure you want to restart the bot ?</i>", button
@@ -39,12 +40,12 @@ async def restart_bot(_, message):
 @new_task
 async def restart_sessions(_, message):
     buttons = button_build.ButtonMaker()
-    buttons.data_button("Yes!", "sessionrestart confirm")
-    buttons.data_button("No!", "sessionrestart cancel")
+    buttons.data_button("Yes!", "sessionrestart confirm", style=ButtonStyle.SUCCESS)
+    buttons.data_button("No!", "sessionrestart cancel", style=ButtonStyle.DANGER)
     button = buttons.build_menu(2)
     await send_message(
         message,
-        "<i>Are you really sure you want to restart the session(s) ?!</>",
+        "<i>Are you really sure you want to restart the session(s) ?!</i>",
         button,
     )
 
@@ -77,15 +78,16 @@ async def restart_notification():
     else:
         chat_id, msg_id = 0, 0
 
-    now = datetime.now(timezone("Asia/Kolkata"))
+    now = datetime.now(timezone(Config.TIMEZONE))
 
-    if Config.INCOMPLETE_TASK_NOTIFIER and Config.DATABASE_URL:
+    if Config.INC_TASK_NOTIFY and Config.DATABASE_URL:
         if notifier_dict := await database.get_incomplete_tasks():
             for cid, data in notifier_dict.items():
                 msg = f"""⌬ <b><i>{"Restarted Successfully!" if cid == chat_id else "Bot Restarted!"}</i></b>
 ┟ <b>Date:</b> {now.strftime("%d/%m/%y")}
 ┠ <b>Time:</b> {now.strftime("%I:%M:%S %p")}
-┠ <b>TimeZone:</b> Asia/Kolkata
+┠ <b>TimeZone:</b> {Config.TIMEZONE}
+┠ <b>Branch:</b> {Config.UPSTREAM_BRANCH}
 ┖ <b>Version:</b> {get_version()}"""
                 for tag, links in data.items():
                     msg += f"\n\n{tag}: "
@@ -105,7 +107,8 @@ async def restart_notification():
                 text=f"""⌬ <b><i>Restarted Successfully!</i></b>
 ┟ <b>Date:</b> {now.strftime("%d/%m/%y")}
 ┠ <b>Time:</b> {now.strftime("%I:%M:%S %p")}
-┠ <b>TimeZone:</b> Asia/Kolkata
+┠ <b>TimeZone:</b> {Config.TIMEZONE}
+┠ <b>Branch:</b> {Config.UPSTREAM_BRANCH}
 ┖ <b>Version:</b> {get_version()}""",
             )
         except Exception as e:
