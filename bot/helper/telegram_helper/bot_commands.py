@@ -54,6 +54,7 @@ class BotCommands:
         "UserSet": ["usetting", "us"],
         "Select": ["select", "sel"],
         "NzbSearch": ["nzbsearch", "ns"],
+        "GenPyroSess": "exportsession",
         "Plugins": "plugins",
     }
 

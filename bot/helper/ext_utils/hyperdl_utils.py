@@ -79,19 +79,37 @@ class HyperTGDownload:
                 return m
         raise ValueError("No downloadable media")
 
-    async def _fetch_ref(self, idx, client):
-        msg = await client.get_messages(self.dump_chat, self.message.id)
-        if msg is None:
-            raise ValueError(
-                f"dump chat {self.dump_chat} msg {self.message.id} not found"
-            )
-        media = self._media_of(msg)
-        fid_str = getattr(media, "file_id", None)
-        if not fid_str:
-            raise ValueError(f"no file_id in media from dump chat msg {self.message.id}")
-        fid = FileId.decode(fid_str)
-        self._ref_cache[idx] = fid
-        return fid
+    async def _fetch_ref(self, idx, client, max_retries=3):
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                msg = await client.get_messages(self.dump_chat, self.message.id)
+                if msg is None:
+                    raise ValueError(
+                        f"msg {self.message.id} not found in {self.dump_chat}"
+                    )
+                media = self._media_of(msg)
+                fid_str = getattr(media, "file_id", None)
+                if not fid_str:
+                    raise ValueError(
+                        f"no file_id in media from msg {self.message.id}"
+                    )
+                fid = FileId.decode(fid_str)
+                self._ref_cache[idx] = fid
+                return fid
+            except Exception as e:
+                last_error = e
+                LOGGER.warning(
+                    f"HyperDL _fetch_ref attempt {attempt + 1}/{max_retries} "
+                    f"fail: {e} (client={client.me.username} "
+                    f"chat={self.dump_chat} msg={self.message.id})"
+                )
+                if attempt < max_retries - 1:
+                    await sleep(1 * (attempt + 1))
+        raise ValueError(
+            f"Failed to get file ref from {self.dump_chat} msg "
+            f"{self.message.id} with {client.me.username}: {last_error}"
+        )
 
     async def _mk_session(self, client, dc_id):
         tm = await client.storage.test_mode()
@@ -420,6 +438,11 @@ class HyperTGDownload:
     async def download_media(self, message, file_name="downloads/",
                              progress=None, progress_args=(), dump_chat=None):
         try:
+            if dump_chat and not isinstance(dump_chat, int):
+                try:
+                    dump_chat = int(dump_chat)
+                except (ValueError, TypeError):
+                    dump_chat = None
             if dump_chat:
                 try:
                     self.message = await TgClient.bot.copy_message(
@@ -436,6 +459,10 @@ class HyperTGDownload:
                     ) from e
             self.dump_chat = dump_chat or message.chat.id
             self.message = self.message or message
+            LOGGER.info(
+                f"HyperDL init dump={self.dump_chat} "
+                f"msg_id={self.message.id} msg_type={type(self.message).__name__}"
+            )
             media = self._media_of(self.message)
             fid_str = media if isinstance(media, str) else media.file_id
             fid_obj = FileId.decode(fid_str)

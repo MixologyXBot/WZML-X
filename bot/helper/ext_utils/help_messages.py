@@ -410,6 +410,7 @@ def get_bot_commands():
         "Log": "[SUDO] Get Bot Logs for Internal Working",
         "Restart": "[SUDO] Reboot bot",
         "RestartSessions": "[SUDO] Reboot User Sessions",
+        "GenPyroSess": "[SUDO] Generate Pyrogram String Session",
     }
 
     commands = static_commands.copy()
@@ -553,6 +554,10 @@ def get_help_string():
             )
         elif key == "Rss":
             help_lines.append(f"/{BotCommands.RssCommand}: RSS Menu.")
+        elif key == "GenPyroSess":
+            help_lines.append(
+                f"/{BotCommands.GenPyroSessCommand}: Generate Pyrogram String Session (Only Owner & Sudo)."
+            )
 
     return "\n".join(help_lines)
 

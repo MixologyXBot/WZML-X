@@ -410,6 +410,13 @@ def add_handlers():
             & CustomFilters.authorized,
         )
     )
+    TgClient.bot.add_handler(
+        MessageHandler(
+            gen_pyro_string,
+            filters=command(BotCommands.GenPyroSessCommand, case_sensitive=True)
+            & CustomFilters.sudo,
+        )
+    )
     if Config.SET_COMMANDS:
         global BOT_COMMANDS
 
