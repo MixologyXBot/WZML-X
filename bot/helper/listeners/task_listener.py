@@ -116,11 +116,12 @@ class TaskListener(TaskConfig):
             )
         if (
             self.is_super_chat
-            and Config.INC_TASK_NOTIFY
+            and (Config.INC_TASK_NOTIFY or Config.INC_TASK_RESUME)
             and Config.DATABASE_URL
         ):
             await database.add_incomplete_task(
-                self.message.chat.id, self.message.link, self.tag
+                self.message.chat.id, self.message.link, self.tag,
+                self.message.text or "", self.user_id,
             )
 
     async def on_download_complete(self):
@@ -399,7 +400,7 @@ class TaskListener(TaskConfig):
     ):
         if (
             self.is_super_chat
-            and Config.INC_TASK_NOTIFY
+            and (Config.INC_TASK_NOTIFY or Config.INC_TASK_RESUME)
             and Config.DATABASE_URL
         ):
             await database.rm_complete_task(self.message.link)
@@ -624,7 +625,7 @@ class TaskListener(TaskConfig):
 
         if (
             self.is_super_chat
-            and Config.INC_TASK_NOTIFY
+            and (Config.INC_TASK_NOTIFY or Config.INC_TASK_RESUME)
             and Config.DATABASE_URL
         ):
             await database.rm_complete_task(self.message.link)
@@ -662,7 +663,7 @@ class TaskListener(TaskConfig):
 
         if (
             self.is_super_chat
-            and Config.INC_TASK_NOTIFY
+            and (Config.INC_TASK_NOTIFY or Config.INC_TASK_RESUME)
             and Config.DATABASE_URL
         ):
             await database.rm_complete_task(self.message.link)

@@ -1,35 +1,33 @@
+import os
 from asyncio import (
+    FIRST_COMPLETED,
     CancelledError,
+    Event,
     Queue,
     create_task,
     ensure_future,
     gather,
     sleep,
+    to_thread,
     wait,
     wait_for,
-    Event,
-    FIRST_COMPLETED,
-    create_subprocess_exec,
 )
 from datetime import datetime
 from mimetypes import guess_extension
-from os import path as ospath, remove as os_remove
 from pathlib import Path
 from re import sub
 from sys import argv
 from time import time
 
-from aiofiles import open as aiopen
 from aiofiles.os import makedirs
-from aioshutil import move
 from pyrogram import StopTransmission, raw, utils
 from pyrogram.errors import (
     AuthBytesInvalid,
-    FloodWait,
-    FloodPremiumWait,
     FileMigrate,
     FileReferenceExpired,
     FileReferenceInvalid,
+    FloodPremiumWait,
+    FloodWait,
 )
 from pyrogram.file_id import PHOTO_TYPES, FileId, FileType, ThumbnailSource
 from pyrogram.session import Auth, Session
@@ -39,8 +37,7 @@ from ... import LOGGER
 from ...core.config_manager import Config
 from ...core.tg_client import TgClient
 
-CHUNK_SIZE = 256 * 1024
-WRITE_BUF = 32 * 1024 * 1024
+CHUNK_SIZE = 512 * 1024
 
 
 def _pick_clients(wl, clients, count):
@@ -68,7 +65,6 @@ class HyperTGDownload:
         self._tasks = []
         self._prog_task = None
         self._processed_bytes = 0
-        self._write_buf = getattr(Config, "HYPER_WRITE_BUFFER", WRITE_BUF)
 
     @staticmethod
     def _media_of(message):
@@ -274,8 +270,7 @@ class HyperTGDownload:
                         chunk = chunk[first_trim:]
                     elif roff + CHUNK_SIZE > end:
                         chunk = chunk[:end - roff]
-                    await queue.put(chunk)
-                    self._processed_bytes += len(chunk)
+                    await queue.put((roff, chunk))
         except CancelledError:
             raise
         except Exception as e:
@@ -289,8 +284,7 @@ class HyperTGDownload:
                 if not f.done():
                     f.cancel()
 
-    async def _part(self, start, end, pi, ci, fid):
-        ppath = ospath.join(self.directory, f"{self.file_name}.p{pi:02d}")
+    async def _part(self, start, end, final_path, ci, fid):
         q = Queue(maxsize=self.pipeline_depth + 1)
         error_holder = [None]
 
@@ -304,20 +298,22 @@ class HyperTGDownload:
             finally:
                 await q.put(None)
 
-        prod = ensure_future(_producer())
-        buf = bytearray()
-        try:
-            async with aiopen(ppath, "wb") as f:
+        async def _consumer():
+            fd = await to_thread(os.open, final_path, os.O_WRONLY)
+            try:
                 while True:
-                    chunk = await q.get()
-                    if chunk is None:
+                    item = await q.get()
+                    if item is None:
                         break
-                    buf.extend(chunk)
-                    if len(buf) >= self._write_buf:
-                        await f.write(buf)
-                        buf = bytearray()
-                if buf:
-                    await f.write(buf)
+                    roff, chunk = item
+                    await self._async_pwrite(fd, chunk, roff)
+                    self._processed_bytes += len(chunk)
+            finally:
+                await to_thread(os.close, fd)
+
+        prod = ensure_future(_producer())
+        try:
+            await _consumer()
             if error_holder[0] is not None:
                 raise error_holder[0]
         except CancelledError:
@@ -329,39 +325,16 @@ class HyperTGDownload:
         finally:
             if not prod.done():
                 prod.cancel()
-        return pi, ppath
 
-    async def _assemble(self, parts, dest):
-        ordered = [p for _, p in sorted(parts)]
-        cat_cmd = " ".join(f'"{p}"' for p in ordered)
-        try:
-            proc = await create_subprocess_exec(
-                "sh", "-c", f'cat {cat_cmd} > "{dest}"',
-            )
-            await proc.wait()
-            if proc.returncode == 0 and ospath.exists(dest):
-                for part in ordered:
-                    try:
-                        os_remove(part)
-                    except Exception:
-                        pass
-                return dest
-        except Exception:
-            pass
-        async with aiopen(dest, "wb") as dst:
-            for part in ordered:
-                async with aiopen(part, "rb") as src:
-                    while True:
-                        c = await src.read(8 * 1024 * 1024)
-                        if not c:
-                            break
-                        await dst.write(c)
-        for part in ordered:
-            try:
-                os_remove(part)
-            except Exception:
-                pass
-        return dest
+    @staticmethod
+    async def _async_pwrite(fd, data, offset):
+        total = len(data)
+        written = 0
+        while written < total:
+            n = await to_thread(os.pwrite, fd, data[written:], offset + written)
+            if n == 0:
+                raise OSError(f"pwrite returned 0 at offset {offset + written}")
+            written += n
 
     async def _progress(self, cb, args):
         if not cb:
@@ -379,19 +352,12 @@ class HyperTGDownload:
             except Exception:
                 await sleep(1)
 
-    def _drop_parts(self, n):
-        for i in range(n):
-            try:
-                os_remove(ospath.join(self.directory, f"{self.file_name}.p{i:02d}"))
-            except Exception:
-                pass
-
     async def handle_download(self, progress, progress_args):
         self._cancel.clear()
         self._processed_bytes = 0
         dl_start = time()
         await makedirs(self.directory, exist_ok=True)
-        final = ospath.abspath(sub("\\\\", "/", ospath.join(self.directory, self.file_name)))
+        final = os.path.abspath(sub("\\\\", "/", os.path.join(self.directory, self.file_name)))
 
         n_use = min(self.num_parts, self.num_clients)
         cidx = _pick_clients(self.work_loads, self.clients, n_use)
@@ -421,18 +387,21 @@ class HyperTGDownload:
         self._prog_task = None
 
         try:
+            fd = await to_thread(os.open, final, os.O_WRONLY | os.O_CREAT)
+            try:
+                await to_thread(os.ftruncate, fd, self.file_size)
+            finally:
+                await to_thread(os.close, fd)
+
             for i, (s, e) in enumerate(ranges):
                 self._tasks.append(
-                    create_task(self._part(s, e, i, assigns[i], fid_map[assigns[i]]))
+                    create_task(self._part(s, e, final, assigns[i], fid_map[assigns[i]]))
                 )
             if progress:
                 self._prog_task = create_task(self._progress(progress, progress_args))
-            parts = list(await gather(*self._tasks))
+            await gather(*self._tasks)
             dl_elapsed = time() - dl_start
             dl_speed = self.file_size / dl_elapsed / 1048576 if dl_elapsed > 0 else 0
-            tmp = final + ".parts"
-            await self._assemble(parts, tmp)
-            await move(tmp, final)
             LOGGER.info(
                 f"HyperDL done {self.file_name} "
                 f"({self.file_size / 1048576:.1f}MB {n_parts}p {n_use}c "
@@ -453,7 +422,6 @@ class HyperTGDownload:
             for t in self._tasks:
                 if not t.done():
                     t.cancel()
-            self._drop_parts(len(ranges))
             await self._close_all()
 
     async def download_media(self, message, file_name="downloads/",
@@ -492,9 +460,9 @@ class HyperTGDownload:
             self.file_size = getattr(media, "file_size", 0)
             mime = getattr(media, "mime_type", "image/jpeg")
             dt = getattr(media, "date", None)
-            self.directory, self.file_name = ospath.split(file_name)
+            self.directory, self.file_name = os.path.split(file_name)
             self.file_name = self.file_name or mname or ""
-            if not ospath.isabs(self.file_name):
+            if not os.path.isabs(self.file_name):
                 self.directory = Path(argv[0]).parent / (self.directory or self.download_dir)
             if not self.file_name:
                 ext = self._ext(ftype, mime)

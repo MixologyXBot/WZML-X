@@ -198,7 +198,7 @@ class DbManager:
             return
         await self.db.rss[_part()].delete_one({"_id": user_id})
 
-    async def add_incomplete_task(self, cid, link, tag):
+    async def add_incomplete_task(self, cid, link, tag, command="", user_id=0):
         if self._return:
             return
         await self.db.tasks[_part()].update_one(
@@ -209,6 +209,8 @@ class DbManager:
                     "cid": cid,
                     "tag": tag,
                     "link": link,
+                    "command": command,
+                    "user_id": user_id,
                 }
             },
             upsert=True,
@@ -248,13 +250,18 @@ class DbManager:
                     continue
                 cid = row["cid"]
                 tag = row["tag"]
+                task_data = {
+                    "link": link,
+                    "command": row.get("command", ""),
+                    "user_id": row.get("user_id", 0),
+                }
                 if cid in notifier_dict:
                     if tag in notifier_dict[cid]:
-                        notifier_dict[cid][tag].append(link)
+                        notifier_dict[cid][tag].append(task_data)
                     else:
-                        notifier_dict[cid][tag] = [link]
+                        notifier_dict[cid][tag] = [task_data]
                 else:
-                    notifier_dict[cid] = {tag: [link]}
+                    notifier_dict[cid] = {tag: [task_data]}
         await self.db.tasks[_part()].drop()
         return notifier_dict
 

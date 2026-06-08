@@ -89,9 +89,11 @@ BOOL_VARS = [
     "DISABLE_MULTI",
     "DISABLE_SEED",
     "DISABLE_TORRENTS",
+    "DISABLE_MEGA",
     "EQUAL_SPLITS",
     "HYBRID_LEECH",
     "INC_TASK_NOTIFY",
+    "INC_TASK_RESUME",
     "IS_TEAM_DRIVE",
     "MEDIA_GROUP",
     "MEDIA_STORE",
@@ -126,6 +128,7 @@ DEFAULT_DESP = {
     "DISABLE_MULTI": "Disable multi-part splits. Default: False.",
     "DISABLE_SEED": "Disable seeding after torrent download. Default: False.",
     "DISABLE_FF_MODE": "Disable FFmpeg processing mode. Default: False.",
+    "DISABLE_MEGA": "Disable Mega Processor for bot. Default: False.",
     "EQUAL_SPLITS": "Split files into equal parts of LEECH_SPLIT_SIZE. Default: False.",
     "EXCLUDED_EXTENSIONS": "File extensions to exclude from upload/clone. Space-separated.",
     "FFMPEG_CMDS": "Custom FFmpeg command presets. Dict format.",
@@ -152,6 +155,7 @@ DEFAULT_DESP = {
     "IMG_PAGE": "Number of pages to search for each keyword in IMG_SEARCH. Each page has ~70 images. Default: 1",
     "USE_IMAGES": "Enable random photo backgrounds on bot messages. Requires IMAGES list. Default: False",
     "INC_TASK_NOTIFY": "Notify about incomplete tasks after restart. Default: False.",
+    "INC_TASK_RESUME": "Auto-resume incomplete tasks on restart. Default: False.",
     "INDEX_URL": "Google Drive Index URL for direct links.",
     "IS_TEAM_DRIVE": "Set True for TeamDrive uploads. Default: False.",
     "JD_EMAIL": "JDownloader account email for premium downloads.",
@@ -185,7 +189,6 @@ DEFAULT_DESP = {
     "HYBRID_LEECH": "Use both premium and normal upload methods for speed. Default: True.",
     "HYPER_THREADS": "Number of parallel download parts (clients). 0 = auto.",
     "HYPER_PIPELINE": "Concurrent GetFile requests per HyperDL part. Default: 4.",
-    "HYPER_WRITE_BUFFER": "HyperDL write buffer size in bytes before disk flush. Default: 33554432 (32MB).",
     "HYDRA_IP": "Hydra API IP address for search.",
     "HYDRA_API_KEY": "Hydra API key for search.",
     "NAME_SWAP": "Rename files using pattern. Format: old:new|old2:new2.",
@@ -257,6 +260,7 @@ ONOFF_VARS = [
     "DISABLE_MULTI",
     "DISABLE_SEED",
     "DISABLE_FF_MODE",
+    "DISABLE_MEGA",
 ]
 
 
@@ -352,7 +356,7 @@ async def get_buttons(key=None, edit_type=None, edit_mode=False):
             val = Config.get(k)
             label = k.removeprefix("DISABLE_")
             if not val:
-                buttons.data_button(f"✅ {label}", f"botset toggleonoff {k} on")
+                buttons.data_button(f"✓ {label}", f"botset toggleonoff {k} on")
             else:
                 buttons.data_button(label, f"botset toggleonoff {k} off")
         buttons.data_button("Back", "botset back", position="footer")
@@ -490,7 +494,7 @@ async def edit_variable(_, message, pre_message, key):
         value = True
     elif value.lower() == "false":
         value = False
-        if key == "INC_TASK_NOTIFY" and Config.DATABASE_URL:
+        if key in ("INC_TASK_NOTIFY", "INC_TASK_RESUME") and Config.DATABASE_URL:
             await database.trunc_table("tasks")
     elif key == "STATUS_UPDATE_INTERVAL":
         value = int(value)
@@ -620,7 +624,7 @@ async def toggle_bool_var(_, query, pre_message, key, value):
     Config.set(key, bool_value)
     await update_buttons(pre_message, key, "editvar", False)
     await database.update_config({key: bool_value})
-    if key == "INC_TASK_NOTIFY" and not bool_value and Config.DATABASE_URL:
+    if key in ("INC_TASK_NOTIFY", "INC_TASK_RESUME") and not bool_value and Config.DATABASE_URL:
         await database.trunc_table("tasks")
     elif key in ["QUEUE_ALL", "QUEUE_DOWNLOAD", "QUEUE_UPLOAD"]:
         await start_from_queued()
@@ -959,7 +963,7 @@ async def edit_bot_settings(client, query):
         elif data[2] == "INDEX_URL":
             if drives_names and drives_names[0] == "Main":
                 index_urls[0] = ""
-        elif data[2] == "INC_TASK_NOTIFY":
+        elif data[2] in ("INC_TASK_NOTIFY", "INC_TASK_RESUME"):
             await database.trunc_table("tasks")
         elif data[2] in ["JD_EMAIL", "JD_PASS"]:
             await create_subprocess_exec("pkill", "-9", "-f", "java")
@@ -1215,7 +1219,7 @@ async def load_config():
         )
         await database.update_aria2("bt-stop-timeout", f"{Config.TORRENT_TIMEOUT}")
 
-    if not Config.INC_TASK_NOTIFY:
+    if not Config.INC_TASK_NOTIFY and not Config.INC_TASK_RESUME:
         await database.trunc_table("tasks")
 
     await (await create_subprocess_exec("pkill", "-9", "-f", "gunicorn")).wait()

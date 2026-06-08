@@ -24,6 +24,7 @@ class Config:
     DISABLE_MULTI = False
     DISABLE_SEED = False
     DISABLE_FF_MODE = False
+    DISABLE_MEGA = False
     EQUAL_SPLITS = False
     EXCLUDED_EXTENSIONS = ""
     FFMPEG_CMDS = {}
@@ -50,13 +51,13 @@ class Config:
     IMG_PAGE = 1
     USE_IMAGES = False
     INC_TASK_NOTIFY = False
+    INC_TASK_RESUME = False
     INDEX_URL = ""
     IS_TEAM_DRIVE = False
     JD_EMAIL = ""
     JD_PASS = ""
     MEGA_EMAIL = ""
     MEGA_PASSWORD = ""
-    DISABLE_MEGA = False
     DIRECT_LIMIT = 0
     MEGA_LIMIT = 0
     TORRENT_LIMIT = 0
@@ -84,7 +85,6 @@ class Config:
     HYBRID_LEECH = True
     HYPER_THREADS = 0
     HYPER_PIPELINE = 4
-    HYPER_WRITE_BUFFER = 33554432
     HYDRA_IP = ""
     HYDRA_API_KEY = ""
     NAME_SWAP = ""

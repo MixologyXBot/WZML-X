@@ -64,15 +64,15 @@ def _collected(api_id=None, api_hash=None, phone=None):
 
 
 def _stop_msg(h, c):
-    return f"{h}\n┃\n" + f"{c}\n┃\n┖ <b>Process Stopped.</b>" if c else "┖ <b>Process Stopped.</b>"
+    return f"{h}\n┃\n" + (f"{c}\n┃\n┖ <b>Process Stopped.</b>" if c else "┖ <b>Process Stopped.</b>")
 
 
 def _timeout_msg(h, c):
-    return f"{h}\n┃\n" + f"{c}\n┃\n┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>" if c else "┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>"
+    return f"{h}\n┃\n" + (f"{c}\n┃\n┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>" if c else "┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>")
 
 
 def _error_msg(h, c, err):
-    return f"{h}\n┃\n" + f"{c}\n┃\n┖ {err}" if c else f"┖ {err}"
+    return f"{h}\n┃\n" + (f"{c}\n┃\n┖ {err}" if c else f"┖ {err}")
 
 
 async def _invoke(user_id, timeout=_TIMEOUT):

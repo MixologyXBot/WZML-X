@@ -14,7 +14,7 @@ from re import compile, I
 from .. import scheduler, rss_dict, LOGGER
 from ..core.config_manager import Config
 from ..core.tg_client import TgClient
-from ..helper.ext_utils.bot_utils import new_task, arg_parser, get_size_bytes
+from ..helper.ext_utils.bot_utils import new_task, arg_parser, get_size_bytes, resolve_command
 from ..helper.ext_utils.status_utils import get_readable_file_size
 from ..helper.ext_utils.db_handler import database
 from ..helper.ext_utils.exceptions import RssShutdownException
@@ -40,62 +40,11 @@ headers = {
 }
 
 
-def _find_command_filters(flt):
-    """Recursively extract CommandFilter instances from a composite filter tree."""
-    if hasattr(flt, "commands"):
-        yield flt
-    for attr in ("base", "other"):
-        if child := getattr(flt, attr, None):
-            yield from _find_command_filters(child)
-
-
-def _build_command_map():
-    """Build a mapping from command name -> handler callback by inspecting
-    the bot's registered message handlers."""
-    mapping = {}
-    for group in TgClient.bot.dispatcher.groups.values():
-        for handler in group:
-            if not isinstance(handler, MessageHandler):
-                continue
-            if handler.filters is None:
-                continue
-            for cmd_filter in _find_command_filters(handler.filters):
-                for cmd in cmd_filter.commands:
-                    mapping[cmd] = handler.callback
-    return mapping
-
-
-_command_map = None
-
-
-def _get_command_map():
-    global _command_map
-    if _command_map is None:
-        _command_map = _build_command_map()
-    return _command_map
-
-
-def _resolve_command(command_str):
-    """Resolve a command string like 'ql -doc' into its handler function.
-
-    Returns the handler function, or None if not recognized.
-    Handles commands with or without CMD_SUFFIX.
-    """
-    cmd_name = command_str.strip().lstrip("/").split(maxsplit=1)[0]
-    mapping = _get_command_map()
-    handler = mapping.get(cmd_name)
-    if handler is None and Config.CMD_SUFFIX:
-        handler = mapping.get(cmd_name + Config.CMD_SUFFIX)
-    if handler is None:
-        LOGGER.warning(f"RSS: Unknown command '{cmd_name}' (from '{command_str}')")
-    return handler
-
-
 async def _start_rss_download(
     url, command, user_id, rss_chat_id, rss_topic_id, item_title
 ):
     """Send a notification to RSS_CHAT and start the download directly."""
-    handler = _resolve_command(command)
+    handler = resolve_command(command)
     if handler is None:
         LOGGER.error(f"RSS: Cannot start download, unknown command: {command}")
         return

@@ -15,7 +15,7 @@ from ..core.config_manager import Config, BinConfig
 from ..core.jdownloader_booter import jdownloader
 from ..core.tg_client import TgClient
 from ..core.torrent_manager import TorrentManager
-from ..helper.ext_utils.bot_utils import new_task
+from ..helper.ext_utils.bot_utils import new_task, resolve_command
 from ..helper.ext_utils.db_handler import database
 from ..helper.ext_utils.files_utils import clean_all
 from ..helper.listeners.mega_listener import mega_cleanup
@@ -50,23 +50,26 @@ async def restart_sessions(_, message):
     )
 
 
-async def send_incomplete_task_message(cid, msg_id, msg):
+def _restart_header(now, is_restart_chat=False):
+    title = "Restarted Successfully!" if is_restart_chat else "Bot Restarted!"
+    return (
+        f"⌬ <b><i>{title}</i></b>\n"
+        f"┟ <b>Date:</b> {now.strftime('%d/%m/%y')}\n"
+        f"┠ <b>Time:</b> {now.strftime('%I:%M:%S %p')}\n"
+        f"┠ <b>TimeZone:</b> {Config.TIMEZONE}\n"
+        f"┠ <b>Branch:</b> {Config.UPSTREAM_BRANCH}\n"
+        f"┖ <b>Version:</b> {get_version()}"
+    )
+
+
+async def _send_msg(cid, msg):
     try:
-        if msg.startswith("⌬ <b><i>Restarted Successfully!</i></b>"):
-            await TgClient.bot.edit_message_text(
-                chat_id=cid,
-                message_id=msg_id,
-                text=msg,
-                disable_web_page_preview=True,
-            )
-            await remove(".restartmsg")
-        else:
-            await TgClient.bot.send_message(
-                chat_id=cid,
-                text=msg,
-                disable_web_page_preview=True,
-                disable_notification=True,
-            )
+        await TgClient.bot.send_message(
+            chat_id=cid,
+            text=msg,
+            disable_web_page_preview=True,
+            disable_notification=True,
+        )
     except Exception as e:
         LOGGER.error(e)
 
@@ -80,40 +83,72 @@ async def restart_notification():
 
     now = datetime.now(timezone(Config.TIMEZONE))
 
-    if Config.INC_TASK_NOTIFY and Config.DATABASE_URL:
+    if Config.DATABASE_URL and (Config.INC_TASK_NOTIFY or Config.INC_TASK_RESUME):
         if notifier_dict := await database.get_incomplete_tasks():
-            for cid, data in notifier_dict.items():
-                msg = f"""⌬ <b><i>{"Restarted Successfully!" if cid == chat_id else "Bot Restarted!"}</i></b>
-┟ <b>Date:</b> {now.strftime("%d/%m/%y")}
-┠ <b>Time:</b> {now.strftime("%I:%M:%S %p")}
-┠ <b>TimeZone:</b> {Config.TIMEZONE}
-┠ <b>Branch:</b> {Config.UPSTREAM_BRANCH}
-┖ <b>Version:</b> {get_version()}"""
-                for tag, links in data.items():
-                    msg += f"\n\n{tag}: "
-                    for index, link in enumerate(links, start=1):
-                        msg += f" <a href='{link}'>{index}</a> |"
-                        if len(msg.encode()) > 4000:
-                            await send_incomplete_task_message(cid, msg_id, msg)
-                            msg = ""
-                if msg:
-                    await send_incomplete_task_message(cid, msg_id, msg)
+            if Config.INC_TASK_RESUME:
+                await _resume_tasks(notifier_dict)
+            if Config.INC_TASK_NOTIFY:
+                await _notify_tasks(notifier_dict, chat_id, now)
 
     if await aiopath.isfile(".restartmsg"):
         try:
             await TgClient.bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=msg_id,
-                text=f"""⌬ <b><i>Restarted Successfully!</i></b>
-┟ <b>Date:</b> {now.strftime("%d/%m/%y")}
-┠ <b>Time:</b> {now.strftime("%I:%M:%S %p")}
-┠ <b>TimeZone:</b> {Config.TIMEZONE}
-┠ <b>Branch:</b> {Config.UPSTREAM_BRANCH}
-┖ <b>Version:</b> {get_version()}""",
+                text=_restart_header(now, is_restart_chat=True),
+                disable_web_page_preview=True,
             )
         except Exception as e:
             LOGGER.error(e)
         await remove(".restartmsg")
+
+
+async def _notify_tasks(notifier_dict, restart_chat_id, now):
+    for cid, data in notifier_dict.items():
+        is_restart_chat = cid == restart_chat_id
+        header = _restart_header(now, is_restart_chat)
+        msg = header + "\n\n⌬ <b><i>Incomplete Tasks!</i></b>"
+        for tag, tasks in data.items():
+            entry = f"\n➲ <b>User:</b> {tag}\n┖ <b>Tasks:</b>"
+            for index, task in enumerate(tasks, start=1):
+                link = task.get("link", "")
+                entry += f" {index}. <a href='{link}'>L</a> |"
+            if len((msg + entry).encode()) > 4000:
+                await _send_msg(cid, msg)
+                msg = header
+            msg += entry
+        if msg:
+            await _send_msg(cid, msg)
+
+
+async def _resume_tasks(notifier_dict):
+    for cid, data in notifier_dict.items():
+        for tag, tasks in data.items():
+            for task in tasks:
+                command = task.get("command", "")
+                user_id = task.get("user_id", 0)
+                if not command or not user_id:
+                    continue
+                try:
+                    user = await TgClient.bot.get_users(user_id)
+                except Exception as e:
+                    LOGGER.warning(f"Resume: cannot get user {user_id}: {e}")
+                    continue
+                handler = resolve_command(command)
+                if handler is None:
+                    continue
+                try:
+                    msg = await TgClient.bot.send_message(
+                        chat_id=cid,
+                        text=command,
+                        disable_notification=True,
+                    )
+                    msg.text = command
+                    msg.from_user = user
+                    await handler(TgClient.bot, msg)
+                    await delete_message(msg)
+                except Exception as e:
+                    LOGGER.error(f"Resume: failed for '{command}' in {cid}: {e}")
 
 
 @new_task
