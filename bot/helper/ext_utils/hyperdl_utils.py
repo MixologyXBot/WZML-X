@@ -38,7 +38,7 @@ from ...core.config_manager import Config
 from ...core.tg_client import TgClient
 
 def _chunk_size():
-    return Config.HYPER_CHUNK
+    return max(getattr(Config, "HYPER_CHUNK", 256 * 1024), 64 * 1024)
 
 
 def _pick_clients(wl, clients, count):
@@ -53,7 +53,7 @@ class HyperTGDownload:
         self.work_loads = TgClient.helper_loads
         self.num_clients = len(self.clients)
         self.num_parts = Config.HYPER_THREADS or max(8, self.num_clients)
-        self.pipeline_depth = getattr(Config, "HYPER_PIPELINE", 8)
+        self.pipeline_depth = max(getattr(Config, "HYPER_PIPELINE", 32), 16)
         self.message = None
         self.dump_chat = None
         self.directory = None
@@ -149,13 +149,14 @@ class HyperTGDownload:
         await gather(*[_w(i) for i in indices])
 
     async def _close_all(self):
-        for s in self._sessions.values():
+        sessions = list(self._sessions.values())
+        self._sessions.clear()
+        for s in sessions:
             try:
                 if s.is_connected:
                     await s.stop()
             except Exception:
                 pass
-        self._sessions.clear()
 
     @staticmethod
     def _location(fid):
@@ -403,10 +404,11 @@ class HyperTGDownload:
             await gather(*self._tasks)
             dl_elapsed = time() - dl_start
             dl_speed = self.file_size / dl_elapsed / 1048576 if dl_elapsed > 0 else 0
+            wl_str = " ".join(f"c{k}:{v}" for k, v in sorted(self.work_loads.items()))
             LOGGER.info(
                 f"HyperDL done {self.file_name} "
                 f"({self.file_size / 1048576:.1f}MB {n_parts}p {n_use}c "
-                f"pipe={self.pipeline_depth} {dl_speed:.1f}MB/s)"
+                f"pipe={self.pipeline_depth} wl=[{wl_str}] {dl_speed:.1f}MB/s)"
             )
             return final
         except FloodWait:
@@ -423,6 +425,8 @@ class HyperTGDownload:
             for t in self._tasks:
                 if not t.done():
                     t.cancel()
+            if self._tasks:
+                await gather(*self._tasks, return_exceptions=True)
             await self._close_all()
 
     async def download_media(self, message, file_name="downloads/",
@@ -494,4 +498,6 @@ class HyperTGDownload:
                 t.cancel()
         if self._prog_task and not self._prog_task.done():
             self._prog_task.cancel()
+        if self._tasks:
+            await gather(*self._tasks, return_exceptions=True)
         await self._close_all()

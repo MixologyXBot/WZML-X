@@ -188,7 +188,7 @@ DEFAULT_DESP = {
     "MEDIA_GROUP": "Upload split parts as media group. Default: False.",
     "HYBRID_LEECH": "Use both premium and normal upload methods for speed. Default: True.",
     "HYPER_THREADS": "Number of parallel download parts (clients). 0 = auto.",
-    "HYPER_PIPELINE": "Concurrent GetFile requests per HyperDL part. Default: 4.",
+    "HYPER_PIPELINE": "Concurrent GetFile requests per HyperDL part. Default: 32.",
     "HYPER_CHUNK": "HyperDL working chunk size in bytes. Default: 256 * 1024 (256KB).",
     "HYDRA_IP": "Hydra API IP address for search.",
     "HYDRA_API_KEY": "Hydra API key for search.",
