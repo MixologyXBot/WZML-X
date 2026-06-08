@@ -872,9 +872,6 @@ async def get_user_settings(from_user, stype="main"):
 
         if has_creds:
             buttons.data_button(
-                "Account Info", f"userset {user_id} mega_account_info"
-            )
-            buttons.data_button(
                 "Remove Account",
                 f"userset {user_id} remove MEGA_EMAIL",
                 position="l_body",
@@ -1443,10 +1440,19 @@ async def edit_user_settings(client, query):
         "advanced",
         "gdrive",
         "rclone",
-        "mega",
     ]:
         await query.answer()
         await update_user_settings(query, data[2])
+    elif data[2] == "mega":
+        await query.answer()
+        msg, button = await get_user_settings(query.from_user, "mega")
+        await edit_message(message, msg, button)
+        mega_email = user_dict.get("MEGA_EMAIL", "")
+        mega_password = user_dict.get("MEGA_PASSWORD", "")
+        if mega_email and mega_password:
+            info_text = await get_mega_account_info(mega_email, mega_password)
+            msg += f"\n\n{info_text}"
+            await edit_message(message, msg, button)
     elif data[2] == "yttools":
         await query.answer()
         await update_user_settings(query, data[2])
@@ -1612,17 +1618,6 @@ async def edit_user_settings(client, query):
         else:
             await query.answer("Reset Cancelled.", show_alert=True)
             await update_user_settings(query)
-    elif data[2] == "mega_account_info":
-        await query.answer()
-        mega_email = user_dict.get("MEGA_EMAIL", "")
-        mega_password = user_dict.get("MEGA_PASSWORD", "")
-        info_text = await get_mega_account_info(mega_email, mega_password)
-        buttons = ButtonMaker()
-        buttons.data_button("Back", f"userset {user_id} back mega", "footer")
-        buttons.data_button(
-            "Close", f"userset {user_id} close", "footer", style=ButtonStyle.DANGER
-        )
-        await edit_message(message, info_text, buttons.build_menu(1))
     elif data[2] == "view":
         await query.answer()
         await send_file(message, thumb_path, name)

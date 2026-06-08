@@ -1,19 +1,15 @@
-from asyncio import TimeoutError as AsyncTimeoutError, get_running_loop, wait_for
-from os import path as ospath
-from secrets import token_hex
+from shutil import rmtree as shutil_rmtree
+from tempfile import mkdtemp
 
-from aiofiles.os import makedirs, path as aiopath
-from aioshutil import rmtree
 from mega import MegaApi, MegaError, MegaListener, MegaRequest
 
-from ... import LOGGER
 from .bot_utils import sync_to_async
 from .status_utils import get_readable_file_size
 
 
 class MegaAccountListener(MegaListener):
     def __init__(self):
-        self._fut = None
+        self._done = False
         self.result = None
         self.error = None
         self.root_handle = None
@@ -57,15 +53,10 @@ class MegaAccountListener(MegaListener):
                     pass
             elif req_type == MegaRequest.TYPE_LOGIN:
                 self.result = True
-            f = self._fut
-            if f and not f.done():
-                self._loop.call_soon_threadsafe(f.set_result, True)
+            self._done = True
         except Exception as e:
-            LOGGER.error(f"MegaAccountListener.onRequestFinish exception: {e}", exc_info=True)
             self.error = str(e)
-            f = self._fut
-            if f and not f.done():
-                self._loop.call_soon_threadsafe(f.set_result, True)
+            self._done = True
 
     def onRequestTemporaryError(self, *args):
         pass
@@ -169,32 +160,10 @@ class MegaAccountListener(MegaListener):
     def onMountRemoved(self, *args):
         pass
 
-    async def wait(self):
-        if self._fut is None:
-            self._loop = get_running_loop()
-            self._fut = self._loop.create_future()
-        try:
-            await wait_for(self._fut, timeout=120)
-        except AsyncTimeoutError:
-            self.error = "Request timed out after 120s"
 
+def _get_mega_account_info_sync(email: str, password: str) -> str:
+    from time import sleep, gmtime, strftime
 
-async def _do_mega_api_create(base_dir: str):
-    return MegaApi("", base_dir, "WZML-X", 4)
-
-
-async def _do_sync_step(api, listener, expected_type, method, *args, step_name: str):
-    listener.expected_type = expected_type
-    listener._loop = get_running_loop()
-    listener._fut = listener._loop.create_future()
-    await sync_to_async(method, *args)
-    await listener.wait()
-    if listener.error:
-        LOGGER.warning(f"get_mega_account_info: {step_name} failed: {listener.error}")
-    return listener.error
-
-
-async def get_mega_account_info(email: str, password: str) -> str:
     if not email or not password:
         return (
             "⌬ <b>Mega Account Info</b>\n"
@@ -202,29 +171,35 @@ async def get_mega_account_info(email: str, password: str) -> str:
             "┖ <i>No credentials configured.</i>"
         )
 
-    base_dir = ospath.join("/tmp", f".mega_account_{token_hex(5)}")
-    await makedirs(base_dir, exist_ok=True)
+    base_dir = mkdtemp(prefix=".mega_account_")
 
-    api = await sync_to_async(MegaApi, "", base_dir, "WZML-X", 4)
+    api = MegaApi("", base_dir, "WZML-X", 4)
     listener = MegaAccountListener()
     api.addListener(listener)
     api._listener_ref = listener
 
     try:
-        err = await _do_sync_step(api, listener, MegaRequest.TYPE_LOGIN,
-                                   api.login, email, password, step_name="login")
-        if err:
-            return f"⌬ <b>Mega Account Info</b>\n│\n┖ Login failed: {err}"
+        for expected_type, method, args, step_name in [
+            (MegaRequest.TYPE_LOGIN, api.login, (email, password), "login"),
+            (MegaRequest.TYPE_FETCH_NODES, api.fetchNodes, (), "fetchNodes"),
+            (MegaRequest.TYPE_ACCOUNT_DETAILS, api.getAccountDetails, (), "getAccountDetails"),
+        ]:
+            listener._done = False
+            listener.expected_type = expected_type
+            listener.error = None
+            listener.result = None
 
-        err = await _do_sync_step(api, listener, MegaRequest.TYPE_FETCH_NODES,
-                                   api.fetchNodes, step_name="fetchNodes")
-        if err:
-            return f"⌬ <b>Mega Account Info</b>\n│\n┖ Fetch nodes failed: {err}"
+            method(*args)
 
-        err = await _do_sync_step(api, listener, MegaRequest.TYPE_ACCOUNT_DETAILS,
-                                   api.getAccountDetails, step_name="getAccountDetails")
-        if err:
-            return f"⌬ <b>Mega Account Info</b>\n│\n┖ Account details failed: {err}"
+            for _ in range(50):
+                if listener._done:
+                    break
+                sleep(0.1)
+            else:
+                return f"⌬ <b>Mega Account Info</b>\n│\n┖ {step_name} timed out after 5s"
+
+            if listener.error:
+                return f"⌬ <b>Mega Account Info</b>\n│\n┖ {step_name} failed: {listener.error}"
 
         info = listener.result
         if not info:
@@ -238,7 +213,7 @@ async def get_mega_account_info(email: str, password: str) -> str:
         pro_expiration = info["pro_expiration"]
 
         storage_pct = round(storage_used / max(storage_max, 1) * 100, 2)
-        transfer_pct = round(transfer_used / max(transfer_max, 1) * 100, 2)
+        transfer_pct = round(transfer_used / max(transfer_max, 1) * 100, 2) if transfer_max else None
 
         pro_names = {0: "Free", 1: "Pro I", 2: "Pro II", 3: "Pro III", 4: "Lite"}
         pro_name = pro_names.get(pro_level, f"Level {pro_level}")
@@ -250,16 +225,23 @@ async def get_mega_account_info(email: str, password: str) -> str:
             f"┠ <b>Account Type</b> → {pro_name}\n"
         )
         if pro_expiration > 0:
-            from time import gmtime, strftime
             text += f"┠ <b>Pro Expires</b> → {strftime('%Y-%m-%d', gmtime(pro_expiration))}\n"
 
         text += (
             f"┃\n"
             f"┠ <b>Storage</b> → {get_readable_file_size(storage_used)} / "
             f"{get_readable_file_size(storage_max)} ({storage_pct}%)\n"
-            f"┠ <b>Transfer</b> → {get_readable_file_size(transfer_used)} / "
-            f"{get_readable_file_size(transfer_max)} ({transfer_pct}%)\n"
         )
+
+        if transfer_pct is not None:
+            text += (
+                f"┠ <b>Transfer</b> → {get_readable_file_size(transfer_used)} / "
+                f"{get_readable_file_size(transfer_max)} ({transfer_pct}%)\n"
+            )
+        else:
+            text += (
+                f"┠ <b>Transfer</b> → {get_readable_file_size(transfer_used)} / Unlimited\n"
+            )
 
         if listener.root_handle is not None:
             try:
@@ -271,22 +253,24 @@ async def get_mega_account_info(email: str, password: str) -> str:
                     f"┖ <b>Folders</b> → {num_folders}"
                 )
             except Exception:
-                text += (
-                    "┃\n"
-                    "┖ <b>Files/Folders</b> → N/A"
-                )
+                text += "┃\n┖ <b>Files/Folders</b> → N/A"
         else:
             text += "┖ <b>Files/Folders</b> → N/A"
 
         return text
 
     except Exception as e:
-        LOGGER.error(f"Mega get_account_info error: {e}", exc_info=True)
         return f"⌬ <b>Mega Account Info</b>\n│\n┖ Error: {e}"
     finally:
         try:
-            api.logout(False, None)
+            api.removeListener(listener)
         except Exception:
             pass
-        if base_dir and await aiopath.exists(base_dir):
-            await rmtree(base_dir, ignore_errors=True)
+        try:
+            shutil_rmtree(base_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+
+async def get_mega_account_info(email: str, password: str) -> str:
+    return await sync_to_async(_get_mega_account_info_sync, email, password)
