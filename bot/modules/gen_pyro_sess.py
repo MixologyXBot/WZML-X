@@ -17,6 +17,7 @@ from pyrogram.errors import (
 
 from ..core.tg_client import TgClient
 from ..helper.ext_utils.bot_utils import new_task
+from ..helper.ext_utils.status_utils import get_readable_time
 from ..helper.telegram_helper.button_build import ButtonMaker
 from ..helper.telegram_helper.message_utils import send_message, edit_message, delete_message
 
@@ -37,20 +38,15 @@ async def _safe_disconnect(client):
         pass
 
 
-def _timeout_str(secs):
-    m, s = divmod(int(secs), 60)
-    return f"{m}m {s}s" if m else f"{s}s"
-
-
 def _stop_btns():
     btns = ButtonMaker()
-    btns.data_button("Stop Process", data=_STOP)
+    btns.data_button("Cancel Process", data=_STOP)
     return btns.build_menu(1)
 
 
 def _header(user_name):
     return (
-        "⌬ <u><i><b>Pyrogram String Session Generator</b></i></u>\n\n"
+        "⌬ <u><i><b>Pyrogram String Session Generator</b></i></u>\n│\n"
         f"│ <b>User</b> → <b>{user_name}</b>!"
     )
 
@@ -58,25 +54,25 @@ def _header(user_name):
 def _collected(api_id=None, api_hash=None, phone=None):
     parts = []
     if api_id is not None:
-        parts.append(f"┃ <b>API_ID</b> → <code>{api_id}</code>")
+        parts.append(f"┠ <b>API_ID</b> → <code>{api_id}</code>")
     if api_hash is not None:
         masked = api_hash[:4] + "*" * (len(api_hash) - 4)
         parts.append(f"┠ <b>API_HASH</b> → <code>{masked}</code>")
     if phone is not None:
-        parts.append(f"┠ Phone → <code>{phone}</code>")
+        parts.append(f"┠ <b>Phone</b> → <code>{phone}</code>")
     return "\n".join(parts) if parts else ""
 
 
 def _stop_msg(h, c):
-    return f"┠ {h}\n┃\n┠ {c}\n┃\n┃ <b>Process Stopped.</b>" if c else "┖ <b>Process Stopped.</b>"
+    return f"{h}\n┃\n" + f"{c}\n┃\n┖ <b>Process Stopped.</b>" if c else "┖ <b>Process Stopped.</b>"
 
 
 def _timeout_msg(h, c):
-    return f"┠ {h}\n┃\n┠ {c}\n┃\n┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>" if c else "┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>"
+    return f"{h}\n┃\n" + f"{c}\n┃\n┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>" if c else "┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>"
 
 
 def _error_msg(h, c, err):
-    return f"┠ {h}\n┃\n┠ {c}\n┃\n┖ {err}" if c else f"┖ {err}"
+    return f"{h}\n┃\n" + f"{c}\n┃\n┖ {err}" if c else f"┖ {err}"
 
 
 async def _invoke(user_id, timeout=_TIMEOUT):
@@ -89,7 +85,7 @@ async def _invoke(user_id, timeout=_TIMEOUT):
         event.set()
 
     async def _on_stop(_, query):
-        await query.answer("Process Stopped.", show_alert=True)
+        await query.answer()
         result[0] = _STOP
         event.set()
 
@@ -138,11 +134,11 @@ async def gen_pyro_string(_, message):
 
     sess_msg = await send_message(
         message,
-        f"{h}\n│\n"
+        f"{h}\n┃\n"
         "┃ <i>Send your <code>API_ID</code> (also known as <code>APP_ID</code>).</i>\n"
         "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
         "┃\n"
-        f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
+        f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
         btns,
     )
 
@@ -162,7 +158,7 @@ async def gen_pyro_string(_, message):
         "┃ <i>Send your <code>API_HASH</code>.</i>\n"
         "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
         "┃\n"
-        f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
+        f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
         btns,
     )
 
@@ -177,7 +173,7 @@ async def gen_pyro_string(_, message):
     while True:
         await edit_message(
             sess_msg,
-            f"{h}\n\n{c}\n\n"
+            f"{h}\n┃\n{c}\n┃\n"
             "┃ <i>Send your phone number in International Format.</i>\n"
             "┖ <b>Example:</b> <code>+14154566376</code>",
             btns,
@@ -190,7 +186,7 @@ async def gen_pyro_string(_, message):
         c_phone = _collected(api_id=api_id, api_hash=api_hash, phone=phone_no)
         await edit_message(
             sess_msg,
-            f"{h}\n\n{c_phone}\n\n"
+            f"{h}\n┃\n{c_phone}\n┃\n"
             f"┃ Is <code>{phone_no}</code> correct?\n"
             "┖ <b>Send:</b> <code>y</code> / <code>yes</code> | <code>n</code> / <code>no</code>",
             btns,
@@ -223,7 +219,7 @@ async def gen_pyro_string(_, message):
         user_code = await pyro_client.send_code(phone_no)
     except FloodWait as e:
         await _safe_disconnect(pyro_client)
-        return await edit_message(sess_msg, _error_msg(h, c, f"<b>FloodWait:</b> <i>Retry after {_timeout_str(e.value)}.</i>"))
+        return await edit_message(sess_msg, _error_msg(h, c, f"<b>FloodWait:</b> <i>Retry after {get_readable_time(e.value)}.</i>"))
     except ApiIdInvalid:
         await _safe_disconnect(pyro_client)
         return await edit_message(sess_msg, _error_msg(h, c, "<i><code>API_ID</code> and <code>API_HASH</code> are Invalid.</i>"))
@@ -233,11 +229,11 @@ async def gen_pyro_string(_, message):
 
     await edit_message(
         sess_msg,
-        f"{h}\n\n{c}\n\n"
+        f"{h}\n┃\n{c}\n┃\n"
         "┃ <i>OTP sent to your Phone Number.</i>\n"
         "┃ <i>Enter in <code>1 2 3 4 5</code> format. (Space in between)</i>\n"
         "┃\n"
-        f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
+        f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
         btns,
     )
 
@@ -261,7 +257,7 @@ async def gen_pyro_string(_, message):
         hint = await pyro_client.get_password_hint()
         await edit_message(
             sess_msg,
-            f"{h}\n\n{c}\n\n"
+            f"{h}\n┃\n{c}\n┃\n"
             "┃ <i>Account is protected with <b>Two-Step Verification</b>.</i>\n"
             f"┃ <b>Hint:</b> <i>{hint}</i>\n"
             "┃\n"
@@ -288,13 +284,13 @@ async def gen_pyro_string(_, message):
             "me",
             f"⌬ <b><u>Pyrogram Session Generated</u></b>\n\n"
             f"<code>{session_string}</code>\n\n"
-            f"<b>Via <a href='https://github.com/weebzone/WZML-X'>WZML-X</a> [ @WZML_X ]</b>",
+            f"<b>Via <a href='https://github.com/SilentDemonSD/WZML-X'>WZML-X</a> [ @WZML_X ]</b>",
             disable_web_page_preview=True,
         )
         await _safe_disconnect(pyro_client)
         await edit_message(
             sess_msg,
-            f"{h}\n\n{c}\n\n"
+            f"{h}\n┃\n{c}\n┃\n"
             "┠  <b>String Session Generated Successfully!</b>\n"
             "┃\n"
             "┖ <i>Check your <b>Saved Messages</b>.</i>",

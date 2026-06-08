@@ -894,7 +894,7 @@ class TaskConfig:
                     )
                     return False
                 if len(name.encode()) > 255:
-                    LOGGER.error(f"Substitute: {name} is too long")
+                    LOGGER.error(f"Name Swap: {name} is too long")
                     return False
             return name + ext
 

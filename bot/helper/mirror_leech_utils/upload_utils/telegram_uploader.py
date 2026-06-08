@@ -231,7 +231,7 @@ class TelegramUploader:
                 cap_mono,
             )
 
-        if len(file_) > 255:
+        if len(file_) > 64:
             if is_archive(file_):
                 name = get_base_name(file_)
                 ext = file_.split(name, 1)[1]
@@ -246,7 +246,7 @@ class TelegramUploader:
                 ext = ""
             if self._lsuffix:
                 ext = f"{self._lsuffix}{ext}"
-            name = name[: 255 - len(ext)]
+            name = name[: 64 - len(ext)]
             file_ = f"{name}{ext}"
         elif self._lsuffix:
             name, ext = ospath.splitext(file_)
