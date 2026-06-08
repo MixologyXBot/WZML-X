@@ -41,7 +41,7 @@ from ... import LOGGER
 from ...core.config_manager import Config
 from ...core.tg_client import TgClient
 
-CHUNK_SIZE = 1024 * 1024
+CHUNK_SIZE = 512 * 1024
 WRITE_BUF = 32 * 1024 * 1024
 
 
@@ -57,7 +57,7 @@ class HyperTGDownload:
         self.work_loads = TgClient.helper_loads
         self.num_clients = len(self.clients)
         self.num_parts = Config.HYPER_THREADS or max(8, self.num_clients)
-        self.pipeline_depth = getattr(Config, "HYPER_PIPELINE", 4)
+        self.pipeline_depth = getattr(Config, "HYPER_PIPELINE", 8)
         self.message = None
         self.dump_chat = None
         self.directory = None
@@ -217,12 +217,15 @@ class HyperTGDownload:
         first_trim = start - first_chunk_off
         last_byte = end - 1
         window = self.pipeline_depth
+        min_window = 2
+        max_window = window * 3
         inflight = set()
         cur_off = first_chunk_off
         seq = 0
+        consecutive_ok = 0
 
         async def _req(off, s):
-            nonlocal sess, loc
+            nonlocal sess, loc, window, consecutive_ok
             for attempt in range(3):
                 try:
                     result = await self._do_req(sess, loc, off, attempt)
@@ -236,6 +239,8 @@ class HyperTGDownload:
                         continue
                     return s, off, result
                 except (FloodWait, FloodPremiumWait) as e:
+                    window = max(min_window, window // 2)
+                    consecutive_ok = 0
                     await sleep(e.value + 1 if hasattr(e, "value") else 5)
                 except CancelledError:
                     raise
@@ -252,6 +257,10 @@ class HyperTGDownload:
                 if not inflight:
                     break
                 done_set, inflight = await wait(inflight, return_when=FIRST_COMPLETED)
+                consecutive_ok += len(done_set)
+                if consecutive_ok >= window * 2:
+                    window = min(window + 1, max_window)
+                    consecutive_ok = 0
                 for f in done_set:
                     s, roff, chunk = f.result()
                     if not chunk:
@@ -268,6 +277,9 @@ class HyperTGDownload:
         except CancelledError:
             raise
         except Exception as e:
+            if "FloodWait" in type(e).__name__ or "Flood" in str(type(e).__name__):
+                window = max(min_window, window // 2)
+                consecutive_ok = 0
             LOGGER.error(f"HyperDL pipeline err: {e}")
             raise
         finally:
@@ -373,13 +385,14 @@ class HyperTGDownload:
     async def handle_download(self, progress, progress_args):
         self._cancel.clear()
         self._processed_bytes = 0
+        dl_start = time()
         await makedirs(self.directory, exist_ok=True)
         final = ospath.abspath(sub("\\\\", "/", ospath.join(self.directory, self.file_name)))
 
         n_use = min(self.num_parts, self.num_clients)
         cidx = _pick_clients(self.work_loads, self.clients, n_use)
 
-        min_part = 10 * 1024 * 1024
+        min_part = 5 * 1024 * 1024
         n_parts = min(n_use, max(1, self.file_size // min_part)) if self.file_size >= min_part else 1
         psz = self.file_size // n_parts if n_parts > 0 else self.file_size
         ranges = [(i * psz, min((i + 1) * psz, self.file_size)) for i in range(n_parts)]
@@ -411,12 +424,15 @@ class HyperTGDownload:
             if progress:
                 self._prog_task = create_task(self._progress(progress, progress_args))
             parts = list(await gather(*self._tasks))
+            dl_elapsed = time() - dl_start
+            dl_speed = self.file_size / dl_elapsed / 1048576 if dl_elapsed > 0 else 0
             tmp = final + ".parts"
             await self._assemble(parts, tmp)
             await move(tmp, final)
             LOGGER.info(
                 f"HyperDL done {self.file_name} "
-                f"({self.file_size / 1048576:.1f}MB {n_parts}p {n_use}c pipe={self.pipeline_depth})"
+                f"({self.file_size / 1048576:.1f}MB {n_parts}p {n_use}c "
+                f"pipe={self.pipeline_depth} {dl_speed:.1f}MB/s)"
             )
             return final
         except FloodWait:
