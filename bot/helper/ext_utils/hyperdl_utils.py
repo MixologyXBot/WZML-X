@@ -56,7 +56,7 @@ class HyperTGDownload:
         self.work_loads = TgClient.helper_loads
         self.num_clients = len(self.clients)
         self.num_parts = Config.HYPER_THREADS or max(8, self.num_clients)
-        self.pipeline_depth = getattr(Config, "HYPER_PIPELINE", 1)
+        self.pipeline_depth = getattr(Config, "HYPER_PIPELINE", 4)
         self.message = None
         self.dump_chat = None
         self.directory = None
@@ -412,12 +412,17 @@ class HyperTGDownload:
                         chat_id=dump_chat, from_chat_id=message.chat.id,
                         message_id=message.id, disable_notification=True,
                     )
-                except (PeerIdInvalid, ChannelInvalid) as e:
-                    LOGGER.warning(f"HyperDL dump copy fail: {e}")
-                    dump_chat = None
+                except Exception as e:
+                    LOGGER.warning(
+                        f"HyperDL copy fail: {e} "
+                        f"(from={message.chat.id} to={dump_chat})"
+                    )
+                    raise RuntimeError(
+                        f"Cannot copy to dump chat: {e}"
+                    ) from e
             self.dump_chat = dump_chat or message.chat.id
             self.message = self.message or message
-            media = await self._media_of(self.message)
+            media = self._media_of(self.message)
             fid_str = media if isinstance(media, str) else media.file_id
             fid_obj = FileId.decode(fid_str)
             ftype = fid_obj.file_type
