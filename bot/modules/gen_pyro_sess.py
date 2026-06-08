@@ -50,39 +50,33 @@ def _stop_btns():
 
 def _header(user_name):
     return (
-        "⌬ <u><i><b>Pyrogram String Session Generator</b></i></u>\n"
-        "│\n"
-        f"│ Hello <b>{user_name}</b>!"
+        "⌬ <u><i><b>Pyrogram String Session Generator</b></i></u>\n\n"
+        f"│ <b>User</b> → <b>{user_name}</b>!"
     )
 
 
 def _collected(api_id=None, api_hash=None, phone=None):
     parts = []
     if api_id is not None:
-        parts.append(f"│ API_ID → <code>{api_id}</code>")
+        parts.append(f"┃ <b>API_ID</b> → <code>{api_id}</code>")
     if api_hash is not None:
         masked = api_hash[:4] + "*" * (len(api_hash) - 4)
-        parts.append(f"┠ API_HASH → <code>{masked}</code>")
+        parts.append(f"┠ <b>API_HASH</b> → <code>{masked}</code>")
     if phone is not None:
         parts.append(f"┠ Phone → <code>{phone}</code>")
     return "\n".join(parts) if parts else ""
 
 
-def _body(h, c, prompt_lines):
-    sep = f"{h}\n│\n{c}\n│\n" if c else f"{h}\n│\n"
-    return sep + "\n".join(prompt_lines)
+def _stop_msg(h, c):
+    return f"┠ {h}\n┃\n┠ {c}\n┃\n┃ <b>Process Stopped.</b>" if c else "┖ <b>Process Stopped.</b>"
 
 
-def _stop_msg(h, c=""):
-    return _body(h, c, ["┖ <b>Process Stopped.</b>"])
-
-
-def _timeout_msg(h, c=""):
-    return _body(h, c, ["│ <b>Timed Out!</b>", "┖ <i>Process Stopped.</i>"])
+def _timeout_msg(h, c):
+    return f"┠ {h}\n┃\n┠ {c}\n┃\n┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>" if c else "┃ <b>Timed Out!</b>\n┖ <i>Process Stopped.</i>"
 
 
 def _error_msg(h, c, err):
-    return _body(h, c, [f"┖ {err}"])
+    return f"┠ {h}\n┃\n┠ {c}\n┃\n┖ {err}" if c else f"┖ {err}"
 
 
 async def _invoke(user_id, timeout=_TIMEOUT):
@@ -144,12 +138,11 @@ async def gen_pyro_string(_, message):
 
     sess_msg = await send_message(
         message,
-        _body(h, "", [
-            "│ <i>Send your <code>API_ID</code> (also known as <code>APP_ID</code>).</i>",
-            "│ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>",
-            "│",
-            f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
-        ]),
+        f"{h}\n│\n"
+        "┃ <i>Send your <code>API_ID</code> (also known as <code>APP_ID</code>).</i>\n"
+        "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
+        "┃\n"
+        f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
         btns,
     )
 
@@ -165,12 +158,11 @@ async def gen_pyro_string(_, message):
     c = _collected(api_id=api_id)
     await edit_message(
         sess_msg,
-        _body(h, c, [
-            "│ <i>Send your <code>API_HASH</code>.</i>",
-            "│ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>",
-            "│",
-            f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
-        ]),
+        f"{h}\n\n{c}\n\n"
+        "┃ <i>Send your <code>API_HASH</code>.</i>\n"
+        "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
+        "┃\n"
+        f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
         btns,
     )
 
@@ -185,10 +177,9 @@ async def gen_pyro_string(_, message):
     while True:
         await edit_message(
             sess_msg,
-            _body(h, c, [
-                "│ <i>Send your phone number in International Format.</i>",
-                "┖ <b>Example:</b> <code>+14154566376</code>",
-            ]),
+            f"{h}\n\n{c}\n\n"
+            "┃ <i>Send your phone number in International Format.</i>\n"
+            "┖ <b>Example:</b> <code>+14154566376</code>",
             btns,
         )
 
@@ -199,10 +190,9 @@ async def gen_pyro_string(_, message):
         c_phone = _collected(api_id=api_id, api_hash=api_hash, phone=phone_no)
         await edit_message(
             sess_msg,
-            _body(h, c_phone, [
-                f"│ Is <code>{phone_no}</code> correct?",
-                "┖ <b>Send:</b> <code>y</code> / <code>yes</code> | <code>n</code> / <code>no</code>",
-            ]),
+            f"{h}\n\n{c_phone}\n\n"
+            f"┃ Is <code>{phone_no}</code> correct?\n"
+            "┖ <b>Send:</b> <code>y</code> / <code>yes</code> | <code>n</code> / <code>no</code>",
             btns,
         )
 
@@ -243,12 +233,11 @@ async def gen_pyro_string(_, message):
 
     await edit_message(
         sess_msg,
-        _body(h, c, [
-            "│ <i>OTP sent to your Phone Number.</i>",
-            "│ <i>Enter in <code>1 2 3 4 5</code> format.</i>",
-            "│",
-            f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
-        ]),
+        f"{h}\n\n{c}\n\n"
+        "┃ <i>OTP sent to your Phone Number.</i>\n"
+        "┃ <i>Enter in <code>1 2 3 4 5</code> format. (Space in between)</i>\n"
+        "┃\n"
+        f"┖ <b>Timeout:</b> <code>{_timeout_str(_TIMEOUT)}</code>",
         btns,
     )
 
@@ -272,12 +261,11 @@ async def gen_pyro_string(_, message):
         hint = await pyro_client.get_password_hint()
         await edit_message(
             sess_msg,
-            _body(h, c, [
-                "│ <i>Account is protected with <b>Two-Step Verification</b>.</i>",
-                f"│ <b>Hint:</b> <i>{hint}</i>",
-                "│",
-                "┖ <i>Send your Password.</i>",
-            ]),
+            f"{h}\n\n{c}\n\n"
+            "┃ <i>Account is protected with <b>Two-Step Verification</b>.</i>\n"
+            f"┃ <b>Hint:</b> <i>{hint}</i>\n"
+            "┃\n"
+            "┖ <i>Send your Password Now.</i>",
             btns,
         )
 
@@ -306,11 +294,10 @@ async def gen_pyro_string(_, message):
         await _safe_disconnect(pyro_client)
         await edit_message(
             sess_msg,
-            _body(h, c, [
-                "│ <b>String Session Generated Successfully!</b>",
-                "│",
-                "┖ <i>Check your <b>Saved Messages</b>.</i>",
-            ]),
+            f"{h}\n\n{c}\n\n"
+            "┠  <b>String Session Generated Successfully!</b>\n"
+            "┃\n"
+            "┖ <i>Check your <b>Saved Messages</b>.</i>",
         )
     except Exception as e:
         await _safe_disconnect(pyro_client)
