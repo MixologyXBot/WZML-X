@@ -122,6 +122,7 @@ class TaskListener(TaskConfig):
             await database.add_incomplete_task(
                 self.message.chat.id, self.message.link, self.tag,
                 self.message.text or "", self.user_id,
+                self.message.reply_to_message.id if self.message.reply_to_message else 0,
             )
 
     async def on_download_complete(self):

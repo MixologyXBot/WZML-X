@@ -127,6 +127,7 @@ async def _resume_tasks(notifier_dict):
             for task in tasks:
                 command = task.get("command", "")
                 user_id = task.get("user_id", 0)
+                reply_to_msg_id = task.get("reply_to_msg_id", 0)
                 if not command or not user_id:
                     continue
                 try:
@@ -145,6 +146,17 @@ async def _resume_tasks(notifier_dict):
                     )
                     msg.text = command
                     msg.from_user = user
+                    if reply_to_msg_id:
+                        try:
+                            reply_msg = await TgClient.bot.get_messages(
+                                chat_id=cid, message_ids=reply_to_msg_id
+                            )
+                            if reply_msg:
+                                msg.reply_to_message = reply_msg
+                        except Exception as e:
+                            LOGGER.warning(
+                                f"Resume: cannot fetch reply msg {reply_to_msg_id}: {e}"
+                            )
                     await handler(TgClient.bot, msg)
                     await delete_message(msg)
                 except Exception as e:
