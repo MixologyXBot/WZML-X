@@ -449,7 +449,8 @@ class YtDlp(TaskListener):
         opt = opt or self.user_dict.get("YT_DLP_OPTIONS") or Config.YT_DLP_OPTIONS
 
         if not self.link and (reply_to := self.message.reply_to_message):
-            self.link = reply_to.text.split("\n", 1)[0].strip()
+            if reply_to.text:
+                self.link = reply_to.text.split("\n", 1)[0].strip()
 
         if not is_url(self.link):
             await send_message(
