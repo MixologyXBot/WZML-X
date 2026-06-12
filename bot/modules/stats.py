@@ -157,18 +157,18 @@ async def get_stats(event, key="home"):
         ver = bot_cache.get("eng_versions", {})
         msg = f"""⌬ <b><i>Packages Statistics :</i></b>
 │
-┟ <b>python:</b> {ver.get("python", "N/A")}
-┠ <b>aria2:</b> {ver.get("aria2", "N/A")}
-┠ <b>qBittorrent:</b> {ver.get("qBittorrent", "N/A")}
-┠ <b>SABnzbd+:</b> {ver.get("SABnzbd+", "N/A")}
-┠ <b>rclone:</b> {ver.get("rclone", "N/A")}
-┠ <b>yt-dlp:</b> {ver.get("yt-dlp", "N/A")}
-┠ <b>ffmpeg:</b> {ver.get("ffmpeg", "N/A")}
-┠ <b>7z:</b> {ver.get("7z", "N/A")}
-┠ <b>Aiohttp:</b> {ver.get("aiohttp", "N/A")}
-┠ <b>PyroTgFork:</b> {ver.get("pyrotgfork", "N/A")}
-┠ <b>Google API:</b> {ver.get("gapi", "N/A")}
-┖ <b>Mega CMD:</b> {ver.get("mega", "N/A")}
+┟ <b>python:</b> v{ver.get("python", "N/A")}
+┠ <b>aria2:</b> v{ver.get("aria2", "N/A")}
+┠ <b>qBittorrent:</b> v{ver.get("qBittorrent", "N/A")}
+┠ <b>SABnzbd+:</b> v{ver.get("SABnzbd+", "N/A")}
+┠ <b>rclone:</b> v{ver.get("rclone", "N/A")}
+┠ <b>yt-dlp:</b> v{ver.get("yt-dlp", "N/A")}
+┠ <b>ffmpeg:</b> v{ver.get("ffmpeg", "N/A")}
+┠ <b>7z:</b> v{ver.get("7z", "N/A")}
+┠ <b>Aiohttp:</b> v{ver.get("aiohttp", "N/A")}
+┠ <b>PyroTgFork:</b> v{ver.get("pyrotgfork", "N/A")}
+┠ <b>Google API:</b> v{ver.get("gapi", "N/A")}
+┖ <b>MegaSDK:</b> v{ver.get("mega", "N/A")}
 """
     elif key == "tlimits":
         msg = f"""⌬ <b><i>Bot Task Limits :</i></b>

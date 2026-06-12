@@ -24,7 +24,7 @@ from aioaria2 import Aria2HttpClient
 from aiohttp.client_exceptions import ClientError
 from aioqbt.client import create_client
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from sabnzbdapi import SabnzbdClient
 from aioqbt.exc import AQError
@@ -65,10 +65,10 @@ def _load_config():
     except ModuleNotFoundError:
         cfg = None
     bot_token = environ.get("BOT_TOKEN", "") or (getattr(cfg, "BOT_TOKEN", "") if cfg else "")
-    secret = environ.get("WZMLX_WEB_SECRET", "") or (
-        getattr(cfg, "WZMLX_WEB_SECRET", "") if cfg else ""
+    access_pwd = environ.get("WEB_ACCESS_PASSWORD", "") or (
+        getattr(cfg, "WEB_ACCESS_PASSWORD", "") if cfg else ""
     )
-    return bot_token, secret
+    return bot_token, access_pwd
 
 
 def _resolve_bot_id(token):
@@ -80,7 +80,7 @@ def _resolve_bot_id(token):
     return (token.split(":", 1)[0] or "0").strip()
 
 
-_BOT_TOKEN, _WEB_SECRET = _load_config()
+_BOT_TOKEN, _ACCESS_PASSWORD = _load_config()
 _BOT_ID = _resolve_bot_id(_BOT_TOKEN)
 
 
@@ -89,14 +89,14 @@ def _service_pwd(service):
     from hmac import new as hmac_new
     from secrets import token_bytes
     global _cached_secret_bytes
-    if not _WEB_SECRET:
+    if not _ACCESS_PASSWORD:
         if _cached_secret_bytes is None:
             _cached_secret_bytes = token_bytes(32)
         secret = _cached_secret_bytes
-    elif isinstance(_WEB_SECRET, str):
-        secret = _WEB_SECRET.encode("utf-8")
+    elif isinstance(_ACCESS_PASSWORD, str):
+        secret = _ACCESS_PASSWORD.encode("utf-8")
     else:
-        secret = _WEB_SECRET
+        secret = _ACCESS_PASSWORD
     msg = f"{_BOT_ID}:{service}".encode("utf-8")
     digest = hmac_new(_SERVICE_PWD_SALT, msg, sha256)
     digest.update(secret)
@@ -434,32 +434,24 @@ async def proxy_fetch(
             data=body,
             allow_redirects=False,
         ) as upstream:
-            if upstream.status in (301, 302, 303, 307, 308) and upstream.headers.get(
-                "Location"
-            ):
-                loc = upstream.headers["Location"]
-                new_loc = rewrite_location(loc, proxy_prefix)
-                return HTMLResponse(
-                    status_code=upstream.status, headers={"Location": new_loc}
-                )
-            content = await upstream.read()
-            media_type = upstream.headers.get("Content-Type", "text/html")
-            resp_headers = {
-                k: v
-                for k, v in upstream.headers.items()
-                if k.lower() not in ["content-length", "content-encoding"]
-            }
-            return HTMLResponse(
-                content=content,
-                status_code=upstream.status,
-                headers=resp_headers,
-                media_type=media_type,
-            )
+            raw = [(k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in upstream.headers.items()
+                    if k.lower() not in ("content-length", "content-encoding")]
+            if upstream.status in (301, 302, 303, 307, 308):
+                loc = upstream.headers.get("Location")
+                if loc:
+                    new_loc = rewrite_location(loc, proxy_prefix)
+                    raw = [(k, new_loc.encode("latin-1") if k == b"location" else v) for k, v in raw]
+            body = await upstream.read() if upstream.status not in (301, 302, 303, 307, 308) else b""
+            response = Response(content=body, status_code=upstream.status)
+            response.raw_headers = raw
+            return response
 
 
 async def protected_proxy(
     service: str, path: str, request: Request, password: str = None
 ):
+    from hmac import compare_digest
+
     service_info = SERVICES.get(service)
     if not service_info:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -468,27 +460,31 @@ async def protected_proxy(
             password = request.query_params.get("pass") or request.cookies.get(
                 f"{service}_pass"
             )
-        if password != service_info["password"]:
+        if not password or not compare_digest(password, service_info["password"]):
             raise HTTPException(status_code=403, detail="Unauthorized access")
     if path:
         if not _SAFE_PATH.match(path):
             raise HTTPException(status_code=400, detail="Invalid path")
         if ".." in path.split("/"):
             raise HTTPException(status_code=400, detail="Invalid path")
-    base = service_info["url"]
-    url = f"{base}/{path}" if path else base
+    base = service_info["url"].rstrip("/")
+    url = f"{base}/{path.lstrip('/')}" if path else f"{base}/"
     headers = {k: v for k, v in request.headers.items() if k.lower() != "host"}
     body = await request.body()
+    params = {k: v for k, v in request.query_params.items() if k != "pass"}
+    if "password" in service_info:
+        params["apikey"] = service_info["password"]
     response = await proxy_fetch(
-        request.method, url, headers, dict(request.query_params), body, f"/{service}"
+        request.method, url, headers, params, body, f"/{service}"
     )
     if "pass" in request.query_params:
+        is_https = request.headers.get("x-forwarded-proto") == "https"
         response.set_cookie(
             f"{service}_pass",
             password,
             httponly=True,
             samesite="strict",
-            secure=False,
+            secure=is_https,
         )
     return response
 

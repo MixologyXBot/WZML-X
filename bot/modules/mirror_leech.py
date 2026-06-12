@@ -122,6 +122,7 @@ class Mirror(TaskListener):
             "-m": "",
             "-meta": "",
             "-up": "",
+            "-gc": "",
             "-rcf": "",
             "-au": "",
             "-ap": "",
@@ -162,6 +163,7 @@ class Mirror(TaskListener):
         self.seed = args["-d"]
         self.name = args["-n"]
         self.up_dest = args["-up"]
+        self.category = args["-gc"]
         self.rc_flags = args["-rcf"]
         self.link = args["link"]
         self.compress = args["-z"]

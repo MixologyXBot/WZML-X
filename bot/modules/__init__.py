@@ -19,6 +19,7 @@ from .gd_search import gdrive_search, select_type
 from .help import arg_usage, bot_help
 from .images import picture_add, pictures, pics_callback
 from .mediainfo import mediainfo
+from .category_select import change_category, confirm_category
 from .broadcast import broadcast
 from .mirror_leech import (
     mirror,
@@ -105,6 +106,8 @@ __all__ = [
     "pics_callback",
     "mediainfo",
     "broadcast",
+    "change_category",
+    "confirm_category",
     "ping",
     "log",
     "log_cb",

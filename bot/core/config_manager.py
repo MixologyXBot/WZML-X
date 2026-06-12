@@ -1,3 +1,4 @@
+from ast import literal_eval
 from importlib import import_module
 from os import getenv
 
@@ -6,9 +7,9 @@ class Config:
     AS_DOCUMENT = False
     AUTHORIZED_CHATS = ""
     BASE_URL = ""
-    BASE_URL_PORT = 80
     BOT_TOKEN = ""
     HELPER_TOKENS = ""
+    HELPER_STRINGS = ""
     BOT_MAX_TASKS = 0
     BOT_PM = False
     CMD_SUFFIX = ""
@@ -50,6 +51,7 @@ class Config:
     IMG_SEARCH = ""
     IMG_PAGE = 1
     USE_IMAGES = False
+    IMG_SOURCES = ["wallpaperflare"]
     INC_TASK_NOTIFY = False
     INC_TASK_RESUME = False
     INDEX_URL = ""
@@ -99,7 +101,7 @@ class Config:
     SHOW_CLOUD_LINK = True
     RCLONE_SERVE_USER = ""
     RCLONE_SERVE_PASS = ""
-    RCLONE_SERVE_PORT = 8080
+    RCLONE_SERVE_PORT = 8081
     RSS_CHAT = ""
     RSS_DELAY = 600
     RSS_SIZE_LIMIT = 0
@@ -123,6 +125,8 @@ class Config:
     USER_MAX_TASKS = 0
     USER_TIME_INTERVAL = 0
     UPLOAD_PATHS = {}
+    DRIVE_CATEGORY_MODE = False
+    DRIVE_CATEGORY_SA = ""
     UPSTREAM_REPO = ""
     UPSTREAM_BRANCH = "master"
     UPDATE_PKGS = True
@@ -130,8 +134,8 @@ class Config:
     USER_SESSION_STRING = ""
     USER_TRANSMISSION = True
     USE_SERVICE_ACCOUNTS = False
+    WEB_ACCESS_PASSWORD = ""
     WEB_PINCODE = True
-    WZMLX_WEB_SECRET = ""
     YT_DLP_OPTIONS = {}
     YT_DESP = "Uploaded with WZML-X bot"
     YT_TAGS = ["telegram", "bot", "youtube"]
@@ -232,6 +236,31 @@ class Config:
                 return float(value)
             except (ValueError, TypeError):
                 return original_value
+        elif isinstance(original_value, list):
+            if isinstance(value, list):
+                return value
+            if isinstance(value, str):
+                try:
+                    parsed = literal_eval(value)
+                    if isinstance(parsed, list):
+                        return parsed
+                except (ValueError, SyntaxError):
+                    pass
+                if value.startswith("[") and value.endswith("]"):
+                    return original_value
+                return [v.strip() for v in value.split(",") if v.strip()]
+            return original_value
+        elif isinstance(original_value, dict):
+            if isinstance(value, dict):
+                return value
+            if isinstance(value, str):
+                try:
+                    parsed = literal_eval(value)
+                    if isinstance(parsed, dict):
+                        return parsed
+                except (ValueError, SyntaxError):
+                    pass
+            return original_value
         return value
 
     @classmethod

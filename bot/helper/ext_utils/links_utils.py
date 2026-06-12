@@ -31,6 +31,24 @@ def is_mega_link(url: str):
     return "mega.nz" in url or "mega.co.nz" in url
 
 
+def is_mega_folder_link(link: str) -> bool:
+    if not link:
+        return False
+    return "/folder/" in link or "#F!" in link
+
+
+def get_mega_subfolder_handle(link: str) -> str | None:
+    if not link:
+        return None
+    parts = link.split("/folder/")
+    if len(parts) >= 3:
+        return parts[-1].split("#")[0].split("/")[0].split("?")[0]
+    parts = link.split("#F!")
+    if len(parts) >= 3:
+        return parts[-1].split("!")[0].split("/")[0].split("?")[0]
+    return None
+
+
 def get_mega_link_type(url):
     return "folder" if "folder" in url or "/#F!" in url else "file"
 

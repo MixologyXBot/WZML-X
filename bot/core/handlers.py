@@ -417,6 +417,15 @@ def add_handlers():
             & CustomFilters.sudo,
         )
     )
+    TgClient.bot.add_handler(
+        MessageHandler(
+            change_category,
+            filters=command(BotCommands.CategorySelectCommand) & CustomFilters.authorized,
+        )
+    )
+    TgClient.bot.add_handler(
+        CallbackQueryHandler(confirm_category, filters=regex("^scat"))
+    )
     if Config.SET_COMMANDS:
         global BOT_COMMANDS
 

@@ -16,6 +16,7 @@ from pyrogram.errors import (
 )
 
 from ..core.tg_client import TgClient
+from ..core.config_manager import Config
 from ..helper.ext_utils.bot_utils import new_task
 from ..helper.ext_utils.status_utils import get_readable_time
 from ..helper.telegram_helper.button_build import ButtonMaker
@@ -132,43 +133,57 @@ async def gen_pyro_string(_, message):
     btns = _stop_btns()
     h = _header(user_name)
 
-    sess_msg = await send_message(
-        message,
-        f"{h}\n┃\n"
-        "┃ <i>Send your <code>API_ID</code> (also known as <code>APP_ID</code>).</i>\n"
-        "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
-        "┃\n"
-        f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
-        btns,
-    )
+    api_id = Config.TELEGRAM_API
+    api_hash = Config.TELEGRAM_HASH
 
-    api_id = await _invoke(user_id)
-    if await _stop_or_timeout(api_id, sess_msg, h, ""):
-        return
+    if not api_id or not api_hash:
+        sess_msg = await send_message(
+            message,
+            f"{h}\n┃\n"
+            "┃ <i>Send your <code>API_ID</code> (also known as <code>APP_ID</code>).</i>\n"
+            "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
+            "┃\n"
+            f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
+            btns,
+        )
 
-    try:
-        api_id = int(api_id)
-    except ValueError:
-        return await edit_message(sess_msg, _error_msg(h, "", "<i><code>APP_ID</code> is Invalid.</i>"))
+        api_id = await _invoke(user_id)
+        if await _stop_or_timeout(api_id, sess_msg, h, ""):
+            return
 
-    c = _collected(api_id=api_id)
-    await edit_message(
-        sess_msg,
-        f"{h}\n\n{c}\n\n"
-        "┃ <i>Send your <code>API_HASH</code>.</i>\n"
-        "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
-        "┃\n"
-        f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
-        btns,
-    )
+        try:
+            api_id = int(api_id)
+        except ValueError:
+            return await edit_message(sess_msg, _error_msg(h, "", "<i><code>APP_ID</code> is Invalid.</i>"))
 
-    api_hash = await _invoke(user_id)
-    if await _stop_or_timeout(api_hash, sess_msg, h, c):
-        return
-    if len(api_hash) <= 30:
-        return await edit_message(sess_msg, _error_msg(h, c, "<i><code>API_HASH</code> is Invalid.</i>"))
+        c = _collected(api_id=api_id)
+        await edit_message(
+            sess_msg,
+            f"{h}\n\n{c}\n\n"
+            "┃ <i>Send your <code>API_HASH</code>.</i>\n"
+            "┃ <i>Get it from <a href='https://my.telegram.org'>my.telegram.org</a>.</i>\n"
+            "┃\n"
+            f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
+            btns,
+        )
 
-    c = _collected(api_id=api_id, api_hash=api_hash)
+        api_hash = await _invoke(user_id)
+        if await _stop_or_timeout(api_hash, sess_msg, h, c):
+            return
+        if len(api_hash) <= 30:
+            return await edit_message(sess_msg, _error_msg(h, c, "<i><code>API_HASH</code> is Invalid.</i>"))
+
+        c = _collected(api_id=api_id, api_hash=api_hash)
+    else:
+        sess_msg = await send_message(
+            message,
+            f"{h}\n┃\n"
+            f"┃ <i>Using <b>API_ID</b> &amp; <b>API_HASH</b> from bot config.</i>\n"
+            "┃\n"
+            f"┖ <b>Timeout:</b> <code>{get_readable_time(_TIMEOUT)}</code>",
+            btns,
+        )
+        c = _collected(api_id=api_id, api_hash=api_hash)
 
     while True:
         await edit_message(

@@ -57,9 +57,8 @@
 | Area | Details |
 |---|---|
 | Runtime | Python Telegram bot + web UI |
-| Deployment | Docker & Docker Compose |
+| Deployment | Docker & Docker Compose (buildx) |
 | Required config | `BOT_TOKEN`, `TELEGRAM_API`, `TELEGRAM_HASH`, `OWNER_ID`, `DATABASE_URL` |
-| Port controls | `BASE_URL_PORT`, `RCLONE_SERVE_PORT` |
 | License | [LICENSE](LICENSE) |
 
 ## Why Use It
@@ -93,41 +92,84 @@ Deploy with Docker and provide the required configuration values. The container 
 ## Deployment
 
 <details open>
-   <summary>Recommended: Docker Compose</summary>
+   <summary>VPS / Dedicated Server (Recommended)</summary>
 
    ```bash
    git clone https://github.com/SilentDemonSD/WZML-X.git
    cd WZML-X
-   docker compose up --build
+   cp config_sample.py config.py
+   # Edit config.py with your values
+   docker buildx compose up -d
    ```
 
-   Use this when you want the simplest full deployment path.
+   The bot runs behind a Cloudflare quick tunnel by default. Check the tunnel URL:
+
+   ```bash
+   docker compose logs tunnel
+   ```
+
+   You'll see a `https://*.trycloudflare.com` URL — that's your bot's web UI.
+
+   To stop:
+
+   ```bash
+   docker buildx compose down
+   ```
 </details>
 
 <details>
-   <summary>Single Container</summary>
+   <summary>VPS with VPN (Gluetun)</summary>
+
+   1. Uncomment the `gluetun` service in `docker-compose.yml`
+   2. Fill in your VPN provider credentials
+   3. Set `network_mode: "service:gluetun"` on the `app` service
+   4. Start:
+
+   ```bash
+   docker buildx compose up -d
+   ```
+
+   All traffic (including the cloudflared tunnel) routes through the VPN.
+</details>
+
+<details>
+   <summary>Multi-Instance (Multiple Bots)</summary>
+
+   Each bot needs its own `config.py` and data volumes. Example for a second bot:
+
+   1. Create `config2.py` with different `BOT_TOKEN`, `OWNER_ID`, etc.
+   2. Uncomment `app2` and `tunnel2` in `docker-compose.yml`
+   3. Edit volume mounts to use `config2.py` and separate data dirs
+   4. Start:
+
+   ```bash
+   docker buildx compose up -d
+   ```
+
+   Each bot gets its own cloudflared tunnel URL. Admin ports (qBittorrent, SABnzbd) are mapped to different host ports (`127.0.0.1:8091`, etc.).
+</details>
+
+<details>
+   <summary>Single Container (Manual)</summary>
 
    ```bash
    git clone https://github.com/SilentDemonSD/WZML-X.git
    cd WZML-X
    docker build -t wzmlx .
-   docker run -p 80:80 -p 8080:8080 wzmlx
+   docker run -p 8080:8080 wzmlx
    ```
-
-   Use this if you want a manual one-container deployment.
 </details>
 
 <details>
    <summary>Deployment Notes</summary>
 
-   1. Set `BASE_URL_PORT` and `RCLONE_SERVE_PORT` to match the ports you want to expose.
-   2. If you use qBittorrent, tune `AsyncIOThreadsCount` to your machine size.
-   3. Stop the container before removing it, and remove the container before pruning images.
-   4. Useful cleanup commands:
+   1. If you use qBittorrent, tune `AsyncIOThreadsCount` to your machine size.
+   2. Stop the container before removing it, and remove the container before pruning images.
+   3. Useful cleanup commands:
 
    ```bash
-   sudo docker container prune
-   sudo docker image prune -a
+   docker container prune
+   docker image prune -a
    ```
 </details>
 
