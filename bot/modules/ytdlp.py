@@ -228,11 +228,11 @@ class YtSelection:
         buttons = ButtonMaker()
         for qual in range(11):
             audio_format = f"{format}{qual}"
-            buttons.data_button(qual, f"ytq {audio_format}")
+            buttons.data_button(str(qual), f"ytq {audio_format}")
         buttons.data_button("Back", "ytq aq back")
-        buttons.data_button("Cancel", "ytq aq cancel")
+        buttons.data_button("Cancel", "ytq cancel")
         subbuttons = buttons.build_menu(5)
-        msg = f"Choose Audio{i} Qaulity:\n0 is best and 10 is worst\nTimeout: {get_readable_time(self._timeout - (time() - self._time))}"
+        msg = f"Choose Audio{i} Quality:\n0 is best and 10 is worst\nTimeout: {get_readable_time(self._timeout - (time() - self._time))}"
         await edit_message(self._reply_to, msg, subbuttons)
 
 
