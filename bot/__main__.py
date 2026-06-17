@@ -27,6 +27,8 @@ for _h in getLogger().handlers:
         break
 from .core.tg_client import TgClient
 
+_clean_task = None
+
 
 async def main():
     from asyncio import gather
@@ -43,12 +45,15 @@ async def main():
 
     await load_settings()
 
-    from bot import _sabnzbd_key, _update_sabnzbd_ini, sabnzbd_client
-    derived_key = _sabnzbd_key()
-    _update_sabnzbd_ini(derived_key)
-    sabnzbd_client._default_params["apikey"] = derived_key
-    from .helper.ext_utils.db_handler import database
-    await database.update_nzb_config()
+    if not Config.DISABLE_NZB:
+        from bot import _sabnzbd_key, _update_sabnzbd_ini, sabnzbd_client
+
+        derived_key = _sabnzbd_key()
+        _update_sabnzbd_ini(derived_key)
+        sabnzbd_client._default_params["apikey"] = derived_key
+        from .helper.ext_utils.db_handler import database
+
+        await database.update_nzb_config()
 
     from .helper.telegram_helper.bot_commands import BotCommands
 
@@ -77,9 +82,6 @@ async def main():
     )
     await gather(load_configurations(), update_variables())
 
-    from .core.torrent_manager import TorrentManager
-
-    await TorrentManager.initiate()
     await gather(
         update_qb_options(),
         update_aria2_options(),
@@ -95,15 +97,15 @@ async def main():
         initiate_search_tools,
     )
 
-    await gather(
-        save_settings(),
-        jdownloader.boot(),
-        clean_all(),
-        initiate_search_tools(),
-        get_packages_version(),
-        telegraph.create_account(),
-        rclone_serve_booter(),
-    )
+    await save_settings()
+    if not Config.DISABLE_JD:
+        bot_loop.create_task(jdownloader.boot())
+    global _clean_task
+    _clean_task = bot_loop.create_task(clean_all())
+    bot_loop.create_task(initiate_search_tools())
+    bot_loop.create_task(get_packages_version())
+    bot_loop.create_task(telegraph.create_account())
+    bot_loop.create_task(rclone_serve_booter())
     bot_loop.create_task(search_images())
 
 
@@ -133,6 +135,11 @@ add_handlers()
 
 from .modules import restart_notification
 
+if _clean_task is not None:
+    try:
+        bot_loop.run_until_complete(_clean_task)
+    except Exception as e:
+        LOGGER.error(f"clean_all error: {e}")
 bot_loop.run_until_complete(restart_notification())
 
 from .core.plugin_manager import get_plugin_manager

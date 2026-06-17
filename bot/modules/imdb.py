@@ -2,7 +2,6 @@ from contextlib import suppress
 from pyrogram.enums import ButtonStyle
 from re import IGNORECASE, findall, search
 
-import cloudscraper
 from imdbinfo import search_title, get_movie
 from pycountry import countries as conn
 from pyrogram.errors import MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty
@@ -193,7 +192,7 @@ def get_poster(query, bulk=False, id=False, file=None):
             ]
         )
         or "N/A",
-        "release_date": getattr(movie, "release_date", "N/A") or "N/A",
+        "release_date": getattr(movie, "release_date", "N/A") or date or "N/A",
         "year": str(getattr(movie, "year", "N/A") or "N/A"),
         "genres": list_to_hash(getattr(movie, "genres", []) or [], emoji=True) or "N/A",
         "poster": getattr(

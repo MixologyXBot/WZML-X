@@ -65,7 +65,7 @@ def derive_service_password(bot_id, service):
 
 
 def _resolve_bot_id():
-    token = getattr(Config, "BOT_TOKEN", "")
+    token = Config.BOT_TOKEN
     if not isinstance(token, str) or not token.strip():
         return "0"
     token = token.strip()
@@ -102,7 +102,7 @@ def verify_pin(gid, pin, bot_id):
 
 COMMAND_USAGE = {}
 
-THREAD_POOL = ThreadPoolExecutor(max_workers=500)
+THREAD_POOL = ThreadPoolExecutor(max_workers=1000)
 
 
 class SetInterval:

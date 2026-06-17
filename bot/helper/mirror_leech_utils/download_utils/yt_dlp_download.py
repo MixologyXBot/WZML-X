@@ -4,6 +4,7 @@ from re import search as re_search
 from contextlib import suppress
 from secrets import token_hex
 from yt_dlp import YoutubeDL, DownloadError
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from .... import task_dict_lock, task_dict
 from ....core.config_manager import BinConfig
@@ -71,6 +72,27 @@ class YoutubeDLHelper:
             "writethumbnail": True,
             "trim_file_name": 220,
             "ffmpeg_location": f"/bin/{BinConfig.FFMPEG_NAME}",
+            "concurrent_fragments": 8,
+            "impersonate": ImpersonateTarget.from_str("chrome"),
+            "socket_timeout": 30,
+            "downloader": {
+                "http": f"/bin/{BinConfig.ARIA2_NAME}",
+                "https": f"/bin/{BinConfig.ARIA2_NAME}",
+            },
+            "downloader_args": {
+                BinConfig.ARIA2_NAME: [
+                    "-x16", "-k1M", "-s16",
+                    "--max-tries=5", "--retry-wait=3",
+                ],
+            },
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["mweb"],
+                    "skip": ["webpage", "configs"],
+                },
+                "youtubetab": {"skip": ["webpage"]},
+            },
+            "hls_use_mpegts": True,
             "fragment_retries": 10,
             "retries": 10,
             "retry_sleep_functions": {
@@ -150,8 +172,6 @@ class YoutubeDLHelper:
         async_to_sync(self._listener.on_download_error, error)
 
     def _extract_meta_data(self):
-        if self._listener.link.startswith(("rtmp", "mms", "rstp", "rtmps")):
-            self.opts["external_downloader"] = BinConfig.FFMPEG_NAME
         with YoutubeDL(self.opts) as ydl:
             try:
                 result = ydl.extract_info(self._listener.link, download=False)

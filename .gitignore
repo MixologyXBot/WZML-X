@@ -13,7 +13,6 @@ rclone/*
 tokens/*
 cookies/*
 mediainfo/*
-sabnzbd/*
 list_drives.txt
 shortener.txt
 categories.txt

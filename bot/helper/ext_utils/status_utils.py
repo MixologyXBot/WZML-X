@@ -131,6 +131,8 @@ def get_raw_file_size(size):
 def get_readable_file_size(size_in_bytes):
     if not size_in_bytes:
         return "0B"
+    if size_in_bytes < 0:
+        return "Unknown"
 
     index = 0
     while size_in_bytes >= 1024 and index < len(SIZE_UNITS) - 1:
@@ -279,8 +281,15 @@ async def get_readable_message(sid, is_user, page_no=1, status="All", page_step=
         msg += f"\n┠ <b>Engine</b> → <i>{task.engine}</i>"
         msg += f"\n┠ <b>In Mode</b> → <i>{task.listener.mode[0]}</i>"
         msg += f"\n┠ <b>Out Mode</b> → <i>{task.listener.mode[1]}</i>"
-        # TODO: Add Bt Sel
         from ..telegram_helper.bot_commands import BotCommands
+
+        if tstatus in [
+            MirrorStatus.STATUS_DOWNLOAD,
+            MirrorStatus.STATUS_PAUSED,
+            MirrorStatus.STATUS_QUEUEDL,
+        ]:
+            if not task.listener.is_nzb and not task.listener.is_jd:
+                msg += f"\n┠ <b>Select</b> → /{BotCommands.SelectCommand[1]}_{task.gid()[:8]}"
 
         msg += f"\n<b>┖ Stop</b> → <i>/{BotCommands.CancelTaskCommand[1]}_{task.gid()[:8]}</i>\n\n"
 

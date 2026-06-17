@@ -1,7 +1,7 @@
 from ast import literal_eval
 from importlib import import_module
 from os import getenv
-
+from wz_bin import bin_name
 
 class Config:
     AS_DOCUMENT = False
@@ -10,10 +10,12 @@ class Config:
     BOT_TOKEN = ""
     HELPER_TOKENS = ""
     HELPER_STRINGS = ""
+    HELPER_BOT_PROXIES = ""
+    HELPER_USER_PROXIES = ""
     BOT_MAX_TASKS = 0
     BOT_PM = False
     CMD_SUFFIX = ""
-    COLORED_BTNS = False
+    COLORED_BTNS = True
     DEFAULT_LANG = "en"
     DATABASE_URL = ""
     DEFAULT_UPLOAD = "rc"
@@ -26,6 +28,11 @@ class Config:
     DISABLE_SEED = False
     DISABLE_FF_MODE = False
     DISABLE_MEGA = False
+    DISABLE_JD = True
+    DISABLE_NZB = True
+    DISABLE_RSS = False
+    DISABLE_SEARCH = False
+    DISABLE_YTDLP = False
     EQUAL_SPLITS = False
     EXCLUDED_EXTENSIONS = ""
     FFMPEG_CMDS = {}
@@ -84,10 +91,12 @@ class Config:
     LEECH_FONT = ""
     LEECH_SPLIT_SIZE = 2097152000
     MEDIA_GROUP = False
-    HYBRID_LEECH = True
+    USE_HYPER = True
     HYPER_THREADS = 0
-    HYPER_PIPELINE = 32
-    HYPER_CHUNK = 256 * 1024
+    HYPER_PIPELINE = 4
+    HYPER_CHUNK = 512 * 1024
+    CPU_LIMIT = 20
+    THROTTLE_SERVICES = "auto"
     HYDRA_IP = ""
     HYDRA_API_KEY = ""
     NAME_SWAP = ""
@@ -132,7 +141,7 @@ class Config:
     UPDATE_PKGS = True
     USENET_SERVERS = []
     USER_SESSION_STRING = ""
-    USER_TRANSMISSION = True
+    TRANSMISSION_MODE = "both"
     USE_SERVICE_ACCOUNTS = False
     WEB_ACCESS_PASSWORD = ""
     WEB_PINCODE = True
@@ -294,8 +303,8 @@ class Config:
 
 
 class BinConfig:
-    ARIA2_NAME = "blitzfetcher"
-    QBIT_NAME = "stormtorrent"
-    FFMPEG_NAME = "mediaforge"
-    RCLONE_NAME = "ghostdrive"
-    SABNZBD_NAME = "newsripper"
+    ARIA2_NAME = bin_name(0)
+    QBIT_NAME = bin_name(1)
+    FFMPEG_NAME = bin_name(2)
+    RCLONE_NAME = bin_name(3)
+    SABNZBD_NAME = bin_name(4)

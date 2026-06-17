@@ -15,8 +15,7 @@ from ...core.tg_client import TgClient, db_partition_id
 def _bot_id():
     if TgClient.ID:
         return str(TgClient.ID)
-    token = getattr(Config, "BOT_TOKEN", "") or ""
-    return token.split(":", 1)[0] or "0"
+    return Config.BOT_TOKEN.split(":", 1)[0]
 
 
 def _part():
@@ -118,7 +117,7 @@ class DbManager:
     async def update_nzb_config(self):
         if self._return:
             return
-        async with aiopen("sabnzbd/SABnzbd.ini", "rb+") as pf:
+        async with aiopen("configs/sabnzbd/SABnzbd.ini", "rb+") as pf:
             nzb_conf = await pf.read()
         await self.db.settings.nzb.replace_one(
             {"_id": _part()}, {"SABnzbd__ini": nzb_conf}, upsert=True
@@ -267,8 +266,12 @@ class DbManager:
                         notifier_dict[cid][tag] = [task_data]
                 else:
                     notifier_dict[cid] = {tag: [task_data]}
-        await self.db.tasks[_part()].drop()
         return notifier_dict
+
+    async def drop_incomplete_tasks(self):
+        if self._return:
+            return
+        await self.db.tasks[_part()].drop()
 
     async def trunc_table(self, name):
         if self._return:

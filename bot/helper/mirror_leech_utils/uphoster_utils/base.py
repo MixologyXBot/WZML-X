@@ -34,13 +34,10 @@ class BaseUpload:
 
     def _resolve_token(self):
         from bot import user_data
+        from bot.core.config_manager import Config
 
         user_dict = user_data.get(self.listener.user_id, {})
-        return user_dict.get(self._TOKEN_KEY) or getattr(
-            __import__("bot.core.config_manager", fromlist=["Config"]).Config,
-            self._CONFIG_KEY,
-            "",
-        )
+        return user_dict.get(self._TOKEN_KEY) or getattr(Config, self._CONFIG_KEY, "")
 
     @property
     def speed(self):

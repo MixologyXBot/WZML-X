@@ -31,7 +31,7 @@ services:
       - ./config.py:/usr/src/app/config.py:ro
       - ./accounts:/usr/src/app/accounts
       - ./downloads:/usr/src/app/downloads
-      - ./sabnzbd:/usr/src/app/sabnzbd
+
     expose:
       - "8080"
 

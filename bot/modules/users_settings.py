@@ -361,8 +361,6 @@ async def get_user_settings(from_user, stype="main"):
                 "AS_DOCUMENT",
                 "EQUAL_SPLITS",
                 "MEDIA_GROUP",
-                "USER_TRANSMISSION",
-                "HYBRID_LEECH",
                 "STOP_DUPLICATE",
                 "DEFAULT_UPLOAD",
             ]
@@ -510,42 +508,6 @@ async def get_user_settings(from_user, stype="main"):
                 "Enable Media Group", f"userset {user_id} tog MEDIA_GROUP t"
             )
             media_group = "Disabled"
-        if (
-            TgClient.IS_PREMIUM_USER
-            and user_dict.get("USER_TRANSMISSION", False)
-            or "USER_TRANSMISSION" not in user_dict
-            and Config.USER_TRANSMISSION
-        ):
-            buttons.data_button(
-                "Leech by Bot", f"userset {user_id} tog USER_TRANSMISSION f"
-            )
-            leech_method = "user"
-        elif TgClient.IS_PREMIUM_USER:
-            leech_method = "bot"
-            buttons.data_button(
-                "Leech by User", f"userset {user_id} tog USER_TRANSMISSION t"
-            )
-        else:
-            leech_method = "bot"
-
-        if (
-            TgClient.IS_PREMIUM_USER
-            and user_dict.get("HYBRID_LEECH", False)
-            or "HYBRID_LEECH" not in user_dict
-            and Config.HYBRID_LEECH
-        ):
-            hybrid_leech = "Enabled"
-            buttons.data_button(
-                "Disable Hybride Leech", f"userset {user_id} tog HYBRID_LEECH f"
-            )
-        elif TgClient.IS_PREMIUM_USER:
-            hybrid_leech = "Disabled"
-            buttons.data_button(
-                "Enable HYBRID Leech", f"userset {user_id} tog HYBRID_LEECH t"
-            )
-        else:
-            hybrid_leech = "Disabled"
-
         buttons.data_button(
             "Thumbnail Layout", f"userset {user_id} menu THUMBNAIL_LAYOUT"
         )
@@ -574,8 +536,6 @@ async def get_user_settings(from_user, stype="main"):
 ┠ Leech Suffix → <code>{escape(lsuffix)}</code>
 ┠ Leech Caption → <code>{escape(lcap)}</code>
 ┠ Leech Destination → <code>{leech_dest}</code>
-┠ Leech by <b>{leech_method}</b> session
-┠ Hybrid Leech → <b>{hybrid_leech}</b>
 ┖ Thumbnail Layout → <b>{thumb_layout}</b>
 """
 
@@ -867,8 +827,9 @@ async def get_user_settings(from_user, stype="main"):
         if Config.DRIVE_CATEGORY_MODE:
             dc_enabled = user_dict.get("drive_cat_mode", False)
             buttons.data_button(
-                f"Drive Cat: {'ON' if dc_enabled else 'OFF'}",
+                f"Drive Categories: {'ON' if dc_enabled else 'OFF'}",
                 f"userset {user_id} tog drive_cat_mode {'f' if dc_enabled else 't'}",
+                "header"
             )
         buttons.data_button("Back", f"userset {user_id} back", "footer")
         buttons.data_button(
