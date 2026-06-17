@@ -138,7 +138,6 @@ class Config:
     DRIVE_CATEGORY_SA = ""
     UPSTREAM_REPO = ""
     UPSTREAM_BRANCH = "master"
-    UPDATE_PKGS = True
     USENET_SERVERS = []
     USER_SESSION_STRING = ""
     TRANSMISSION_MODE = "both"

@@ -147,6 +147,8 @@ class TaskConfig:
         self.is_rss = getattr(self.message, "_rss_trigger", False)
         self.progress = True
         self.ffmpeg_cmds = None
+        self.dump_chat = 0
+        self.dump_msg_id = 0
         self.metadata_title = None
         self.chat_thread_id = None
         self.subproc = None
@@ -189,10 +191,9 @@ class TaskConfig:
     def get_token_path(self, dest):
         if dest.startswith("mtp:"):
             return f"tokens/{self.user_id}.pickle"
-        elif (
+        elif Config.USE_SERVICE_ACCOUNTS and (
             dest.startswith("sa:")
-            or Config.USE_SERVICE_ACCOUNTS
-            and not dest.startswith("tp:")
+            or not dest.startswith("tp:")
         ):
             return "accounts"
         else:

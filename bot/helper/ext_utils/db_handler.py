@@ -199,7 +199,7 @@ class DbManager:
         await self.db.rss[_part()].delete_one({"_id": user_id})
 
     async def add_incomplete_task(
-        self, cid, link, tag, command="", user_id=0, reply_to_msg_id=0
+        self, cid, link, tag, command="", user_id=0, reply_to_msg_id=0, dump_msg_id=0
     ):
         if self._return:
             return
@@ -214,9 +214,18 @@ class DbManager:
                     "command": command,
                     "user_id": user_id,
                     "reply_to_msg_id": reply_to_msg_id,
+                    "dump_msg_id": dump_msg_id,
                 }
             },
             upsert=True,
+        )
+
+    async def update_task_dump_msg(self, link, dump_chat, dump_msg_id):
+        if self._return:
+            return
+        await self.db.tasks[_part()].update_one(
+            {"link": link},
+            {"$set": {"dump_msg_id": dump_msg_id, "dump_chat": dump_chat}},
         )
 
     async def get_pm_uids(self):
@@ -258,6 +267,8 @@ class DbManager:
                     "command": row.get("command", ""),
                     "user_id": row.get("user_id", 0),
                     "reply_to_msg_id": row.get("reply_to_msg_id", 0),
+                    "dump_msg_id": row.get("dump_msg_id", 0),
+                    "dump_chat": row.get("dump_chat", 0),
                 }
                 if cid in notifier_dict:
                     if tag in notifier_dict[cid]:

@@ -85,7 +85,6 @@ var_list = [
     "BASE_URL",
     "UPSTREAM_REPO",
     "UPSTREAM_BRANCH",
-    "UPDATE_PKGS",
 ]
 auth_chats = {}
 excluded_extensions = ["aria2", "!qB"]

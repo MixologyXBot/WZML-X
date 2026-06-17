@@ -51,12 +51,20 @@ class HypertgUpload(HypertgTransfer):
     def _build_media(self, input_file, mime_type, media_type, attributes, thumb_file=None):
         if media_type == "photo":
             return raw.types.InputMediaUploadedPhoto(file=input_file)
+        if media_type == "video":
+            mime_type = "video/mp4"
+        elif media_type == "audio":
+            if mime_type == "audio/ogg":
+                mime_type = "audio/opus"
+            else:
+                mime_type = "audio/mpeg"
+        else:
+            mime_type = "application/octet-stream"
         return raw.types.InputMediaUploadedDocument(
             file=input_file,
             thumb=thumb_file,
-            mime_type=mime_type or "application/octet-stream",
+            mime_type=mime_type,
             attributes=attributes or [],
-            nosound_video=media_type == "video" and "video" in (mime_type or ""),
             force_file=media_type == "document",
         )
 

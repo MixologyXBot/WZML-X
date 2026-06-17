@@ -58,6 +58,7 @@ from ..mirror_leech_utils.upload_utils.telegram_uploader import TelegramUploader
 from ..mirror_leech_utils.youtube_utils.youtube_upload import YouTubeUpload
 from ..telegram_helper.button_build import ButtonMaker
 from ..telegram_helper.message_utils import (
+    delete_links,
     delete_message,
     delete_status,
     send_message,
@@ -123,12 +124,17 @@ class TaskListener(TaskConfig):
                 self.message.chat.id, self.message.link, self.tag,
                 self.message.text or "", self.user_id,
                 self.message.reply_to_message.id if self.message.reply_to_message else 0,
+                self.dump_msg_id,
             )
 
     async def on_download_complete(self):
         await sleep(2)
         if self.is_cancelled:
             return
+        if self.dump_msg_id and Config.DATABASE_URL:
+            await database.update_task_dump_msg(
+                self.message.link, self.dump_chat, self.dump_msg_id
+            )
         multi_links = False
         if (
             self.folder_name
@@ -578,6 +584,8 @@ class TaskListener(TaskConfig):
         if self.pm_msg and (not Config.DELETE_LINKS or Config.CLEAN_LOG_MSG):
             await delete_message(self.pm_msg)
 
+        await delete_links(self.message)
+
         await clean_download(self.dir)
         async with task_dict_lock:
             if self.mid in task_dict:
@@ -619,6 +627,7 @@ class TaskListener(TaskConfig):
         )
 
         await send_message(self.message, msg, button)
+        await delete_links(self.message)
         if count == 0:
             await self.clean()
         else:
@@ -657,6 +666,7 @@ class TaskListener(TaskConfig):
                 del task_dict[self.mid]
             count = len(task_dict)
         await send_message(self.message, f"{self.tag} {escape(str(error))}")
+        await delete_links(self.message)
         if count == 0:
             await self.clean()
         else:

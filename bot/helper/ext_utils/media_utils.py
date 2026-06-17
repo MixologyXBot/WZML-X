@@ -42,20 +42,14 @@ async def create_thumb(msg, _id=""):
     await makedirs(path, exist_ok=True)
     photo_dir = await msg.download()
     output = ospath.join(path, f"{_id}.jpg")
-    await sync_to_async(Image.open(photo_dir).convert("RGB").save, output, "JPEG")
+    await sync_to_async(Image.open(photo_dir).convert("RGB").save, output, "JPEG", quality=95)
     await remove(photo_dir)
     return output
 
 
 async def download_image_thumb(url):
-    """Download an image from a URL and save it as a JPEG thumbnail.
-
-    Validates that the URL points to an image via Content-Type header check.
-    Returns the path to the saved thumbnail, or empty string on failure.
-    """
     from httpx import AsyncClient
 
-    # Content types that are definitely NOT images
     NON_IMAGE_TYPES = (
         "text/",
         "application/json",
@@ -68,7 +62,6 @@ async def download_image_thumb(url):
         async with AsyncClient(
             follow_redirects=True, timeout=30
         ) as client:
-            # HEAD request to check content type and size
             try:
                 head_resp = await client.head(url)
                 content_type = head_resp.headers.get("content-type", "")
@@ -79,16 +72,13 @@ async def download_image_thumb(url):
                     return ""
 
             except Exception:
-                pass  # HEAD failed, will check during GET
+                pass 
 
-            # Download the image
             resp = await client.get(url)
             if resp.status_code != 200:
                 LOGGER.error(f"Failed to download thumb URL: HTTP {resp.status_code}")
                 return ""
 
-            # Only reject known non-image types; unknown types are allowed
-            # PIL will validate the actual image data below
             content_type = resp.headers.get("content-type", "")
             if content_type and any(
                 content_type.startswith(t) for t in NON_IMAGE_TYPES
@@ -98,7 +88,6 @@ async def download_image_thumb(url):
 
             data = resp.content
 
-            # Save and convert to JPEG
             path = f"{DOWNLOAD_DIR}thumbnails"
             await makedirs(path, exist_ok=True)
             tmp_path = ospath.join(path, f"{time()}_tmp")

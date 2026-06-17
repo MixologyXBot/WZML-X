@@ -416,8 +416,6 @@ class Mirror(TaskListener):
                     await delete_links(self.message)
                     return
 
-        await delete_links(self.message)
-
         if file_ is not None:
             await TelegramDownloadHelper(self).add_download(
                 reply_to, f"{path}/", session

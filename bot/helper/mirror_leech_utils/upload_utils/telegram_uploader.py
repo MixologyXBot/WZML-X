@@ -95,6 +95,8 @@ class TelegramUploader:
             self._thumb = None
 
     async def _msg_to_reply(self):
+        if self._user_session and TgClient.user is None:
+            self._user_session = False
         if self._listener.up_dest:
             msg_link = (
                 self._listener.message.link if self._listener.is_super_chat else ""
@@ -402,9 +404,6 @@ class TelegramUploader:
                         self._upload_file_task(file_, f_path, dirpath)
                     )
                     upload_tasks.append(task)
-                    if self._log_msg and not is_log_del and Config.CLEAN_LOG_MSG:
-                        await delete_message(self._log_msg)
-                        is_log_del = True
                     if self._listener.is_cancelled:
                         return
                 except Exception as err:
@@ -430,6 +429,9 @@ class TelegramUploader:
                         )
         if self._listener.is_cancelled:
             return
+        if self._log_msg and not is_log_del and Config.CLEAN_LOG_MSG:
+            await delete_message(self._log_msg)
+            is_log_del = True
         if self._total_files == 0:
             await self._listener.on_upload_error(
                 "No files to upload. In case you have filled EXCLUDED_EXTENSIONS, then check if all files have those extensions or not."

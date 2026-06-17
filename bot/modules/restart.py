@@ -133,6 +133,8 @@ async def _resume_tasks(notifier_dict):
                 command = task.get("command", "")
                 user_id = task.get("user_id", 0)
                 reply_to_msg_id = task.get("reply_to_msg_id", 0)
+                dump_msg_id = task.get("dump_msg_id", 0)
+                dump_chat = task.get("dump_chat", 0)
                 if not command or not user_id:
                     continue
                 try:
@@ -161,6 +163,17 @@ async def _resume_tasks(notifier_dict):
                         except Exception as e:
                             LOGGER.warning(
                                 f"Resume: cannot fetch reply msg {reply_to_msg_id}: {e}"
+                            )
+                    if not msg.reply_to_message and dump_msg_id and dump_chat:
+                        try:
+                            dump_msg = await TgClient.bot.get_messages(
+                                chat_id=dump_chat, message_ids=dump_msg_id
+                            )
+                            if dump_msg:
+                                msg.reply_to_message = dump_msg
+                        except Exception as e:
+                            LOGGER.warning(
+                                f"Resume: cannot fetch dump msg {dump_msg_id}: {e}"
                             )
                     await handler(TgClient.bot, msg)
                     await sleep(1)

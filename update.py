@@ -30,7 +30,6 @@ _VAR_LIST = [
     "BASE_URL",
     "UPSTREAM_REPO",
     "UPSTREAM_BRANCH",
-    "UPDATE_PKGS",
 ]
 
 def _get_version():
@@ -117,33 +116,34 @@ def _run_update(upstream_repo, upstream_branch, version):
     if path.exists(".git"):
         srun(["rm", "-rf", ".git"])
 
-    result = srun(
-        [
-            "bash",
-            "-c",
-            f"git init -q"
-            f" && git config --global user.email 105407900+SilentDemonSD@users.noreply.github.com"
-            f" && git config --global user.name SilentDemonSD"
-            f" && git add ."
-            f" && git commit -sm update -q"
-            f" && git remote add origin {upstream_repo}"
-            f" && git fetch origin -q"
-            f" && git reset --hard origin/{upstream_branch} -q",
-        ],
-    )
+    git_cmds = [
+        ["git", "init", "-q"],
+        ["git", "config", "--global", "user.email", "105407900+SilentDemonSD@users.noreply.github.com"],
+        ["git", "config", "--global", "user.name", "SilentDemonSD"],
+        ["git", "add", "."],
+        ["git", "commit", "-sm", "update", "-q"],
+        ["git", "remote", "add", "origin", upstream_repo],
+        ["git", "fetch", "origin", "-q"],
+        ["git", "reset", "--hard", f"origin/{upstream_branch}", "-q"],
+    ]
+
+    result = None
+    for cmd in git_cmds:
+        result = srun(cmd)
+        if result.returncode != 0:
+            break
 
     display_repo = "/".join(upstream_repo.split("/")[-2:])
-    if result.returncode == 0:
+    if result is not None and result.returncode == 0:
         _LOGGER.info("Successfully updated with Latest Updates!")
     else:
         _LOGGER.error("Something went Wrong! Recheck your details or Ask Support!")
     _LOGGER.info(f"UPSTREAM_REPO: {display_repo} | UPSTREAM_BRANCH: {upstream_branch} | VERSION: {version}")
 
 
-def _update_packages(update_pkgs):
-    if (isinstance(update_pkgs, str) and update_pkgs.lower() == "true") or update_pkgs:
-        scall("uv pip install -U -r requirements.txt", shell=True)
-        _LOGGER.info("Successfully Updated all the Packages!")
+def _update_packages():
+    scall("uv pip install -U -r requirements.txt", shell=True)
+    _LOGGER.info("Successfully Updated all the Packages!")
 
 
 def main():
@@ -166,8 +166,7 @@ def main():
 
     _run_update(upstream_repo, upstream_branch, version)
 
-    update_pkgs = config_file.get("UPDATE_PKGS", "True")
-    _update_packages(update_pkgs)
+    _update_packages()
 
 
 if __name__ == "__main__":

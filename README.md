@@ -207,7 +207,6 @@ Then tune the optional behavior from `config_sample.py`.
    | `QUEUE_ALL`, `QUEUE_DOWNLOAD`, `QUEUE_UPLOAD` | Queue pressure and concurrency |
    | `SHOW_CLOUD_LINK` | Whether cloud links are shown to users |
    | `WEB_PINCODE` | Protects web access to file selection |
-   | `UPDATE_PKGS` | Package refresh behavior during startup |
 </details>
 
 <details>

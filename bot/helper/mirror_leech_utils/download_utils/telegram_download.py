@@ -94,6 +94,13 @@ class TelegramDownloadHelper:
                         file_name=path,
                         dump_chat=Config.LEECH_DUMP_CHAT,
                     )
+                    if (
+                        self._hyper_dl_instance.dump_chat
+                        and self._hyper_dl_instance.message
+                        and hasattr(self._hyper_dl_instance.message, "id")
+                    ):
+                        self._listener.dump_chat = self._hyper_dl_instance.dump_chat
+                        self._listener.dump_msg_id = self._hyper_dl_instance.message.id
                     self._hyper_dl_instance = None
                 except Exception:
                     if Config.TRANSMISSION_MODE in ("user", "both"):
