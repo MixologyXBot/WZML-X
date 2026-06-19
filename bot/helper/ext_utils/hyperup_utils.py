@@ -15,7 +15,7 @@ from mimetypes import guess_type
 from os import path as ospath
 from re import search as research
 
-from pyrogram import StopTransmission, raw
+from pyrogram import StopTransmission, raw, utils
 from pyrogram.errors import FilePartMissing, FloodPremiumWait, FloodWait
 from pyrogram.parser.html import HTML
 from pyrogram.session import Session
@@ -354,10 +354,12 @@ class HypertgUpload(HypertgTransfer):
         entities = parsed["entities"]
 
         rpc = raw.functions.messages.SendMedia(
-            peer=peer, media=input_media, message=message_text,
+            peer=peer,
+            media=input_media,
             random_id=target_client.rnd_id(),
             reply_to=raw.types.InputReplyToMessage(reply_to_msg_id=reply_to_message_id)
             if reply_to_message_id else None,
+            **await utils.parse_text_entities(target_client, caption, None, None),
             silent=True,
             entities=entities,
         )
