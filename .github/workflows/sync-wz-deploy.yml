@@ -1,6 +1,7 @@
 name: Sync WZ-Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - wzv3
