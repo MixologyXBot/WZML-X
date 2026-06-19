@@ -17,7 +17,6 @@ from re import search as research
 
 from pyrogram import StopTransmission, raw, utils
 from pyrogram.errors import FilePartMissing, FloodPremiumWait, FloodWait
-from pyrogram.parser.html import HTML
 from pyrogram.session import Session
 
 from ... import LOGGER
@@ -348,10 +347,7 @@ class HypertgUpload(HypertgTransfer):
 
         peer = await target_client.resolve_peer(target_chat_id)
 
-        html_parser = HTML(None)
-        parsed = await html_parser.parse(caption or "")
-        message_text = parsed["message"]
-        entities = parsed["entities"]
+        parsed = await utils.parse_text_entities(target_client, caption or "", None, None)
 
         rpc = raw.functions.messages.SendMedia(
             peer=peer,
@@ -359,9 +355,8 @@ class HypertgUpload(HypertgTransfer):
             random_id=target_client.rnd_id(),
             reply_to=raw.types.InputReplyToMessage(reply_to_msg_id=reply_to_message_id)
             if reply_to_message_id else None,
-            **await utils.parse_text_entities(target_client, caption, None, None),
+            **parsed,
             silent=True,
-            entities=entities,
         )
 
         r_updates = None

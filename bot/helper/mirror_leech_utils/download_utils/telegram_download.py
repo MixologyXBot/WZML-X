@@ -95,7 +95,8 @@ class TelegramDownloadHelper:
                         dump_chat=Config.LEECH_DUMP_CHAT,
                     )
                     if (
-                        self._hyper_dl_instance.dump_chat
+                        self._hyper_dl_instance is not None
+                        and self._hyper_dl_instance.dump_chat
                         and self._hyper_dl_instance.message
                         and hasattr(self._hyper_dl_instance.message, "id")
                     ):

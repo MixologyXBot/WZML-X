@@ -53,6 +53,7 @@ def _dc_alt_port(cls, dc_id, test_mode, ipv6, media):
     return ip, port
 
 
+TCP.connect = _tcp_tuned_connect
 _hyper_patches_applied = False
 
 
@@ -60,10 +61,12 @@ def _apply_hyper_patches():
     global _hyper_patches_applied
     if _hyper_patches_applied:
         return
-    TCP.connect = _tcp_tuned_connect
-    DataCenter.__new__ = staticmethod(_dc_alt_port)
-    _hyper_patches_applied = True
-    LOGGER.info("Applied HyperTransfer Tuning on WZ!")
+    try:
+        DataCenter.__new__ = staticmethod(_dc_alt_port)
+        _hyper_patches_applied = True
+        LOGGER.info("Applied Hyper DC media port 5222")
+    except Exception as e:
+        LOGGER.warning(f"Failed to apply Hyper DC port patch: {e}")
 
 MB = 1024 * 1024
 

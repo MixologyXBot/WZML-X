@@ -410,10 +410,13 @@ class TelegramUploader:
                                 message_ids=self._sent_msg.id,
                             )
                     self._last_msg_in_group = False
-                    task = ensure_future(
-                        self._upload_file_task(file_, f_path, dirpath)
-                    )
-                    upload_tasks.append(task)
+                    if self._hu is not None:
+                        task = ensure_future(
+                            self._upload_file_task(file_, f_path, dirpath)
+                        )
+                        upload_tasks.append(task)
+                    else:
+                        await self._upload_file_task(file_, f_path, dirpath)
                     if self._listener.is_cancelled:
                         return
                 except Exception as err:
@@ -527,6 +530,14 @@ class TelegramUploader:
             except (FloodWait, FloodPremiumWait) as f:
                 LOGGER.warning(str(f))
                 await sleep(f.value * 1.3)
+                return await self._hyperul_upload(
+                    cap_mono, file, thumb, key,
+                    f_path=f_path, duration=duration,
+                    width=width, height=height, artist=artist, title=title,
+                )
+            except OSError as e:
+                LOGGER.warning(f"Transport error during upload, retrying: {e}")
+                await sleep(5)
                 return await self._hyperul_upload(
                     cap_mono, file, thumb, key,
                     f_path=f_path, duration=duration,
