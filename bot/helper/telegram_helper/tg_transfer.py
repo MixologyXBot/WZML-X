@@ -43,8 +43,6 @@ async def _tcp_tuned_connect(self, address):
             LOGGER.info(f"HypertgTCP socket tune failed: {e}")
 
 
-TCP.connect = _tcp_tuned_connect
-
 _orig_dc_new = DataCenter.__new__
 
 
@@ -55,13 +53,24 @@ def _dc_alt_port(cls, dc_id, test_mode, ipv6, media):
     return ip, port
 
 
-DataCenter.__new__ = staticmethod(_dc_alt_port)
+_hyper_patches_applied = False
+
+
+def _apply_hyper_patches():
+    global _hyper_patches_applied
+    if _hyper_patches_applied:
+        return
+    TCP.connect = _tcp_tuned_connect
+    DataCenter.__new__ = staticmethod(_dc_alt_port)
+    _hyper_patches_applied = True
+    LOGGER.info("Applied HyperTransfer Tuning on WZ!")
 
 MB = 1024 * 1024
 
 
 class HypertgTransfer:
     def __init__(self, obj):
+        _apply_hyper_patches()
         self._obj = obj
         self._listener = obj._listener
         self.clients = TgClient.helper_bots

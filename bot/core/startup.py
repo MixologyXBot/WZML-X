@@ -420,3 +420,6 @@ async def load_configurations():
             f"{env}gunicorn -k uvicorn.workers.UvicornWorker -w 1 web.wserver:app --bind 0.0.0.0:{PORT}"
         )
         await create_subprocess_shell("python3 cron_boot.py")
+
+    from ..helper.ext_utils.tunnel_monitor import apply_tunnel_url_once
+    await apply_tunnel_url_once()

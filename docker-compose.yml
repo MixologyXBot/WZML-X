@@ -31,37 +31,70 @@ services:
       - ./config.py:/usr/src/app/config.py:ro
       - ./accounts:/usr/src/app/accounts
       - ./downloads:/usr/src/app/downloads
+      - tunnel_data:/data:ro
 
     expose:
       - "8080"
 
   tunnel:
-    image: cloudflare/cloudflared:latest
+    build:
+      context: .
+      dockerfile: tunnel.Dockerfile
     restart: unless-stopped
-    command: tunnel --no-autoupdate --url http://localhost:8080
     network_mode: "service:app"
+    volumes:
+      - tunnel_data:/data
 
+  # --- Second instance example (uncomment to run) ---
   # app2:
   #   build: .
   #   command: bash start.sh
   #   restart: unless-stopped
-  #   network_mode: "service:gluetun"
   #   volumes:
   #     - ./config2.py:/usr/src/app/config.py:ro
   #     - ./app2.accounts:/usr/src/app/accounts
   #     - ./app2.downloads:/usr/src/app/downloads
-  #     - ./app2.sabnzbd:/usr/src/app/sabnzbd
+  #     - tunnel_data:/data:ro
+  #   environment:
+  #     - TUNNEL_URL_FILE=/data/tunnel2_url.txt
   #   expose:
   #     - "8080"
-  #   ports:
-  #     - "127.0.0.1:8071:8070"
-  #     - "127.0.0.1:8091:8090"
-
+  # 
   # tunnel2:
-  #   image: cloudflare/cloudflared:latest
+  #   build:
+  #     context: .
+  #     dockerfile: tunnel.Dockerfile
   #   restart: unless-stopped
-  #   command: tunnel --no-autoupdate --url http://localhost:8080
   #   network_mode: "service:app2"
+  #   environment:
+  #     - TUNNEL_URL_FILE=/data/tunnel2_url.txt
+  #   volumes:
+  #     - tunnel_data:/data
+  # 
+  # --- Optional: VPN for app2 via gluetun (uncomment and fill below) ---
+  # gluetun:
+  #   image: qmcgaw/gluetun:latest
+  #   container_name: gluetun
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - /dev/net/tun:/dev/net/tun
+  #   environment:
+  #     - VPN_SERVICE_PROVIDER=
+  #     - VPN_TYPE=
+  #     # OpenVPN
+  #     - OPENVPN_USER=
+  #     - OPENVPN_PASSWORD=
+  #     # Wireguard
+  #     - WIREGUARD_PRIVATE_KEY=
+  #     - WIREGUARD_ADDRESS=
+  #     - WIREGUARD_PUBLIC_KEY=
+  #     - TZ=Asia/Kolkata
+  #     - UPDATER_PERIOD=24h
+  #   ports:
+  #     - "8080:8080"
+  #     - "8081:8081"
+  #   restart: on-failure
 
   # Named tunnel (persistent URL with your own domain)
   # 1. Go to https://dash.cloudflare.com/ → Networking → Tunnels → Create a tunnel
@@ -79,3 +112,6 @@ services:
   #   restart: unless-stopped
   #   command: tunnel --no-autoupdate run --token <YOUR_TOKEN_2>
   #   network_mode: "service:app2"
+
+volumes:
+  tunnel_data:

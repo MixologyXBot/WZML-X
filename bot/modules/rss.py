@@ -1,3 +1,4 @@
+from json import loads as jloads, JSONDecodeError
 from httpx import AsyncClient
 from pyrogram.enums import ButtonStyle
 from apscheduler.triggers.interval import IntervalTrigger
@@ -38,6 +39,44 @@ headers = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.5",
 }
+
+
+def _json_to_rss(data, feed_title="TorAPI"):
+    items = data if isinstance(data, list) else data.get("data", []) if isinstance(data, dict) else []
+    if not items:
+        return None
+    entries = ""
+    for item in items:
+        title = item.get("Name", "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        url = item.get("Url", "")
+        torrent = item.get("Torrent", "")
+        size = item.get("Size", "")
+        entries += f"""<item>
+<title>{title}</title>
+<link>{url}</link>
+<guid isPermaLink="false">{item.get("Id", url)}</guid>
+<enclosure url="{torrent}" type="application/x-bittorrent"/>
+<description>Size: {size}</description>
+</item>
+"""
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:torrent="http://xmlns.ezrss.it/0.1/dtd/">
+<channel>
+<title>{feed_title}</title>
+{entries}
+</channel>
+</rss>"""
+
+
+def _parse_feed(content):
+    try:
+        data = jloads(content)
+        rss_xml = _json_to_rss(data)
+        if rss_xml:
+            return feed_parse(rss_xml)
+    except (JSONDecodeError, TypeError):
+        pass
+    return feed_parse(content)
 
 
 async def _start_rss_download(
@@ -198,7 +237,7 @@ async def rss_sub(_, message, pre_event):
             ) as client:
                 res = await client.get(feed_link)
             html = res.text
-            rss_d = feed_parse(html)
+            rss_d = _parse_feed(html)
             last_link = ""
             last_title = ""
             size = 0
@@ -415,7 +454,7 @@ async def rss_get(_, message, pre_event):
                 ) as client:
                     res = await client.get(data["link"])
                 html = res.text
-                rss_d = feed_parse(html)
+                rss_d = _parse_feed(html)
                 item_info = ""
                 for item_num in range(count):
                     try:
@@ -787,7 +826,7 @@ async def rss_monitor():
                         if tries > 3:
                             raise
                         continue
-                rss_d = feed_parse(html)
+                rss_d = _parse_feed(html)
                 if not rss_d.entries:
                     LOGGER.warning(
                         f"No entries found for > Feed Title: {title} - Feed Link: {data['link']}"

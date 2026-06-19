@@ -8,7 +8,7 @@ from aioshutil import rmtree
 from natsort import natsorted
 from PIL import Image
 from pyrogram import StopTransmission
-from pyrogram.errors import RPCError
+from pyrogram.errors import BadRequest, FloodPremiumWait, FloodWait, RPCError
 from pyrogram.raw.types import (
     DocumentAttributeAudio,
     DocumentAttributeFilename,
@@ -72,7 +72,7 @@ class TelegramUploader:
         self._log_msg = None
         self._user_session = self._listener.transmission_mode in ("user", "both")
         self._error = ""
-        self._hu = HypertgUpload(self) if Config.USE_HYPER and Config.LEECH_DUMP_CHAT else None
+        self._hu = HypertgUpload(self) if Config.USE_HYPER and Config.LEECH_DUMP_CHAT and len(TgClient.helper_bots) != 0 else None
 
     async def _user_settings(self):
         settings_map = {
@@ -157,6 +157,16 @@ class TelegramUploader:
         else:
             self._sent_msg = self._listener.message
         return True
+
+    async def _upload_progress(self, current, _):
+        if self._listener.is_cancelled:
+            if self._user_session:
+                TgClient.user.stop_transmission()
+            else:
+                self._listener.client.stop_transmission()
+        chunk_size = current - self._last_uploaded
+        self._last_uploaded = current
+        self._processed_bytes += chunk_size
 
     async def _prepare_file(self, pre_file_, dirpath):
         cap_file_ = file_ = pre_file_
@@ -474,41 +484,62 @@ class TelegramUploader:
             attrs = None
         target_client = TgClient.user if self._user_session else self._listener.client
         if self._hu is None:
-            return await target_client.send_video(
-                chat_id=self._sent_msg.chat.id,
-                video=f_path or self._up_path,
-                caption=cap_mono,
-                duration=duration or 0,
-                width=width or 480,
-                height=height or 320,
-                thumb=thumb if thumb and thumb != "none" else None,
-                supports_streaming=True,
-                disable_notification=True,
-                reply_to_message_id=self._sent_msg.id,
-            ) if key == "videos" else await target_client.send_audio(
-                chat_id=self._sent_msg.chat.id,
-                audio=f_path or self._up_path,
-                caption=cap_mono,
-                duration=duration or 0,
-                performer=artist or "",
-                title=title or "",
-                thumb=thumb if thumb and thumb != "none" else None,
-                disable_notification=True,
-                reply_to_message_id=self._sent_msg.id,
-            ) if key == "audios" else await target_client.send_document(
-                chat_id=self._sent_msg.chat.id,
-                document=f_path or self._up_path,
-                caption=cap_mono,
-                thumb=thumb if thumb and thumb != "none" else None,
-                disable_notification=True,
-                reply_to_message_id=self._sent_msg.id,
-            ) if key == "documents" else await target_client.send_photo(
-                chat_id=self._sent_msg.chat.id,
-                photo=f_path or self._up_path,
-                caption=cap_mono,
-                disable_notification=True,
-                reply_to_message_id=self._sent_msg.id,
-            )
+            sent = None
+            try:
+                if key == "videos":
+                    sent = await self._sent_msg.reply_video(
+                        video=f_path or self._up_path,
+                        caption=cap_mono,
+                        duration=duration or 0,
+                        width=width or 480,
+                        height=height or 320,
+                        thumb=thumb if thumb and thumb != "none" else None,
+                        supports_streaming=True,
+                        disable_notification=True,
+                        progress=self._upload_progress,
+                    )
+                elif key == "audios":
+                    sent = await self._sent_msg.reply_audio(
+                        audio=f_path or self._up_path,
+                        caption=cap_mono,
+                        duration=duration or 0,
+                        performer=artist or "",
+                        title=title or "",
+                        thumb=thumb if thumb and thumb != "none" else None,
+                        disable_notification=True,
+                        progress=self._upload_progress,
+                    )
+                elif key == "documents":
+                    sent = await self._sent_msg.reply_document(
+                        document=f_path or self._up_path,
+                        caption=cap_mono,
+                        thumb=thumb if thumb and thumb != "none" else None,
+                        disable_notification=True,
+                        progress=self._upload_progress,
+                    )
+                else:
+                    sent = await self._sent_msg.reply_photo(
+                        photo=f_path or self._up_path,
+                        caption=cap_mono,
+                        disable_notification=True,
+                        progress=self._upload_progress,
+                    )
+            except (FloodWait, FloodPremiumWait) as f:
+                LOGGER.warning(str(f))
+                await sleep(f.value * 1.3)
+                return await self._hyperul_upload(
+                    cap_mono, file, thumb, key,
+                    f_path=f_path, duration=duration,
+                    width=width, height=height, artist=artist, title=title,
+                )
+            except BadRequest:
+                if key != "documents":
+                    LOGGER.error(f"Retrying As Document. Path: {f_path or self._up_path}")
+                    return await self._hyperul_upload(
+                        cap_mono, file, thumb, "documents", f_path=f_path,
+                    )
+                raise
+            return sent
         return await self._hu.upload(
             target_client=target_client,
             target_chat_id=self._sent_msg.chat.id,

@@ -522,9 +522,10 @@ class HypertgDownload(HypertgTransfer):
                     all_failed_offsets.update(r)
                     bad_bots.add(assigns[i])
             max_retries = 4
-            for retry_round in range(max_retries):
-                if not all_failed_offsets:
-                    break
+            retry_round = 0
+            all_bad_mode = False
+            while all_failed_offsets:
+                retry_round += 1
 
                 await sleep(1)
 
@@ -533,7 +534,15 @@ class HypertgDownload(HypertgTransfer):
                     key=lambda i: self.work_loads.get(i, 0),
                 )
                 if not good_bots:
-                    LOGGER.error("HypertgDL retry: no good bots remaining")
+                    fallback = max(bad_bots)
+                    LOGGER.warning(
+                        f"HypertgDL retry: all bots bad, "
+                        f"falling back to {self.clients[fallback].me.username}"
+                    )
+                    good_bots = [fallback]
+                    all_bad_mode = True
+
+                if retry_round > max_retries and not all_bad_mode:
                     break
 
                 range_buckets = {i: [] for i in range(len(ranges))}
@@ -554,7 +563,7 @@ class HypertgDownload(HypertgTransfer):
 
                 orphans_str = f" {orphans} orphans" if orphans else ""
                 LOGGER.warning(
-                    f"HypertgDL retry round {retry_round + 1}/{max_retries}: "
+                    f"HypertgDL retry round {retry_round}: "
                     f"{len(all_failed_offsets)} failed offsets"
                     f"{orphans_str}"
                     f"{' (bad bots: ' + str(bad_bots) + ')' if bad_bots else ''}"

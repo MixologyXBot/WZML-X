@@ -1,26 +1,17 @@
 from asyncio import run
 from hashlib import sha256
 from importlib import import_module
-from logging import (
-    FileHandler,
-    StreamHandler,
-    INFO,
-    basicConfig,
-    getLogger,
-    ERROR,
-)
-from os import path, remove, environ
-from pymongo import AsyncMongoClient
-from pymongo.errors import PyMongoError
-from pymongo.server_api import ServerApi
-from subprocess import run as srun, call as scall
+from logging import ERROR, INFO, FileHandler, StreamHandler, basicConfig, getLogger
+from os import environ, path, remove
+from subprocess import call as scall
+from subprocess import run as srun
 from sys import exit
 
 getLogger("pymongo").setLevel(ERROR)
 
 _LOGGER = getLogger("update")
-
 _DB_PARTITION_SALT = b"wzmlx_v3_db_partition_salt"
+
 _VAR_LIST = [
     "BOT_TOKEN",
     "TELEGRAM_API",
@@ -32,18 +23,18 @@ _VAR_LIST = [
     "UPSTREAM_BRANCH",
 ]
 
+
 def _get_version():
     try:
-        version = import_module("bot.version")
-        return version.get_version()
+        return import_module("bot.version").get_version()
     except Exception:
         return "unknown"
 
 
 def _setup_logging():
     if path.exists("log.txt"):
-        with open("log.txt", "r+") as f:
-            f.truncate(0)
+        with open("log.txt", "w"):
+            pass
     if path.exists("rlog.txt"):
         remove("rlog.txt")
     basicConfig(
@@ -65,12 +56,7 @@ def _load_config():
     except ModuleNotFoundError:
         _LOGGER.info("Config.py file is not Added! Checking ENVs..")
         config_file = {}
-
-    env_updates = {
-        key: value.strip() if isinstance(value, str) else value
-        for key, value in environ.items()
-        if key in _VAR_LIST
-    }
+    env_updates = {key: environ[key].strip() for key in _VAR_LIST if key in environ}
     if env_updates:
         _LOGGER.info("Config data is updated with ENVs!")
         config_file.update(env_updates)
@@ -78,16 +64,22 @@ def _load_config():
 
 
 def _db_partition_id(bot_id):
-    raw = sha256(_DB_PARTITION_SALT + str(bot_id).encode("utf-8")).hexdigest()
+    raw = sha256(_DB_PARTITION_SALT + str(bot_id).encode()).hexdigest()
     return f"p_{raw[:24]}"
 
 
 async def _fetch_db_config(database_url, db_part):
+    try:
+        from pymongo import AsyncMongoClient
+        from pymongo.server_api import ServerApi
+    except ImportError:
+        scall("uv pip install pymongo", shell=True)
+        from pymongo import AsyncMongoClient
+        from pymongo.server_api import ServerApi
     conn = AsyncMongoClient(database_url, server_api=ServerApi("1"))
     try:
-        db = conn.wzmlx
-        return await db.settings.config.find_one({"_id": db_part}, {"_id": 0})
-    except PyMongoError as e:
+        return await conn.wzmlx.settings.config.find_one({"_id": db_part}, {"_id": 0})
+    except Exception as e:
         _LOGGER.error(f"Database ERROR: {e}")
         return None
     finally:
@@ -112,13 +104,17 @@ def _run_update(upstream_repo, upstream_branch, version):
     if not upstream_repo:
         _LOGGER.info("No UPSTREAM_REPO set, skipping git update")
         return
-
     if path.exists(".git"):
         srun(["rm", "-rf", ".git"])
-
     git_cmds = [
         ["git", "init", "-q"],
-        ["git", "config", "--global", "user.email", "105407900+SilentDemonSD@users.noreply.github.com"],
+        [
+            "git",
+            "config",
+            "--global",
+            "user.email",
+            "105407900+SilentDemonSD@users.noreply.github.com",
+        ],
         ["git", "config", "--global", "user.name", "SilentDemonSD"],
         ["git", "add", "."],
         ["git", "commit", "-sm", "update", "-q"],
@@ -126,19 +122,18 @@ def _run_update(upstream_repo, upstream_branch, version):
         ["git", "fetch", "origin", "-q"],
         ["git", "reset", "--hard", f"origin/{upstream_branch}", "-q"],
     ]
-
-    result = None
     for cmd in git_cmds:
         result = srun(cmd)
         if result.returncode != 0:
             break
-
     display_repo = "/".join(upstream_repo.split("/")[-2:])
-    if result is not None and result.returncode == 0:
+    if result and result.returncode == 0:
         _LOGGER.info("Successfully updated with Latest Updates!")
     else:
         _LOGGER.error("Something went Wrong! Recheck your details or Ask Support!")
-    _LOGGER.info(f"UPSTREAM_REPO: {display_repo} | UPSTREAM_BRANCH: {upstream_branch} | VERSION: {version}")
+    _LOGGER.info(
+        f"UPSTREAM_REPO: {display_repo} | UPSTREAM_BRANCH: {upstream_branch} | VERSION: {version}"
+    )
 
 
 def _update_packages():
@@ -150,22 +145,14 @@ def main():
     _setup_logging()
     config_file = _load_config()
     version = _get_version()
-
     bot_token = config_file.get("BOT_TOKEN", "")
     if not bot_token:
         _LOGGER.error("BOT_TOKEN variable is missing! Exiting now")
         exit(1)
-
-    bot_id = bot_token.split(":", 1)[0]
-    db_part = _db_partition_id(bot_id)
-
-    _fetch_config_from_db(config_file, db_part)
-
+    _fetch_config_from_db(config_file, _db_partition_id(bot_token.split(":", 1)[0]))
     upstream_repo = config_file.get("UPSTREAM_REPO", "").strip()
     upstream_branch = config_file.get("UPSTREAM_BRANCH", "").strip() or "wzv3"
-
     _run_update(upstream_repo, upstream_branch, version)
-
     _update_packages()
 
 

@@ -231,6 +231,7 @@ class TgClient:
         except Exception as e:
             LOGGER.error(f"Failed to start client from USER_SESSION_STRING. {e}")
             cls.IS_PREMIUM_USER = False
+            cls.MAX_SPLIT_SIZE = 2097152000
             cls.user = None
 
     @classmethod
@@ -258,6 +259,7 @@ class TgClient:
             except Exception as e:
                 LOGGER.error(f"Failed to start client from USER_SESSION_STRING. {e}")
                 cls.IS_PREMIUM_USER = False
+                cls.MAX_SPLIT_SIZE = 2097152000
                 cls.user = None
 
     @classmethod

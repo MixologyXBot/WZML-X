@@ -142,6 +142,9 @@ if _clean_task is not None:
         LOGGER.error(f"clean_all error: {e}")
 bot_loop.run_until_complete(restart_notification())
 
+from .helper.ext_utils.tunnel_monitor import start_tunnel_monitor
+start_tunnel_monitor()
+
 from .core.plugin_manager import get_plugin_manager
 from .modules.plugin_manager import register_plugin_commands
 
