@@ -420,12 +420,12 @@ class SevenZ:
         ]
         if self._listener.is_leech and int(size) > self._listener.split_size:
             if not pswd:
-                del cmd[4]
+                del cmd[5]
             LOGGER.info(f"Zip: orig_path: {dl_path}, zip_path: {up_path}.0*")
         else:
             del cmd[1]
             if not pswd:
-                del cmd[3]
+                del cmd[4]
             LOGGER.info(f"Zip: orig_path: {dl_path}, zip_path: {up_path}")
         if self._listener.is_cancelled:
             return False
