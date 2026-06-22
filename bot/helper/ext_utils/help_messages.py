@@ -420,8 +420,11 @@ def get_bot_commands():
         for plugin_info in plugin_manager.list_plugins():
             if plugin_info.enabled and plugin_info.commands:
                 for cmd in plugin_info.commands:
-                    if cmd == "speedtest":
-                        commands["SpeedTest"] = "Check Bot Speed using Speedtest.com"
+                    key = cmd.capitalize()
+                    if key not in commands:
+                        commands[key] = (
+                            plugin_info.description or f"Plugin command: {cmd}"
+                        )
 
     return commands
 
@@ -446,9 +449,7 @@ def get_help_string():
         else:
             cmd_str = f"/{cmd_attr}"
 
-        if key == "SpeedTest" and key in BOT_COMMANDS:
-            help_lines.append(f"{cmd_str}: Check Bot Speed using Speedtest.com")
-        elif key == "Mirror":
+        if key == "Mirror":
             help_lines.append(f"{cmd_str}: Start mirroring to cloud.")
         elif key == "QbMirror":
             help_lines.append(f"{cmd_str}: Start Mirroring to cloud using qBittorrent.")
@@ -527,11 +528,17 @@ def get_help_string():
         elif key == "RmSudo":
             help_lines.append(f"{cmd_str}: Remove sudo users (Only Owner).")
         elif key == "BlackList":
-            help_lines.append(f"{cmd_str}: Blacklist a user from using the bot (Only Owner & Sudo).")
+            help_lines.append(
+                f"{cmd_str}: Blacklist a user from using the bot (Only Owner & Sudo)."
+            )
         elif key == "RmBlackList":
-            help_lines.append(f"{cmd_str}: Remove a user from blacklist (Only Owner & Sudo).")
+            help_lines.append(
+                f"{cmd_str}: Remove a user from blacklist (Only Owner & Sudo)."
+            )
         elif key == "AddImage":
-            help_lines.append(f"{cmd_str}: Add an image to the gallery by reply to photo or link.")
+            help_lines.append(
+                f"{cmd_str}: Add an image to the gallery by reply to photo or link."
+            )
         elif key == "Images":
             help_lines.append(f"{cmd_str}: View and manage the image gallery.")
         elif key == "Restart":
@@ -558,6 +565,8 @@ def get_help_string():
             help_lines.append(
                 f"/{BotCommands.GenPyroSessCommand}: Generate Pyrogram String Session (Only Owner & Sudo)."
             )
+        elif key in BOT_COMMANDS:
+            help_lines.append(f"{cmd_str}: {BOT_COMMANDS[key]}")
 
     return "\n".join(help_lines)
 

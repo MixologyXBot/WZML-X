@@ -36,11 +36,14 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
             style=ButtonStyle.DANGER,
         )
 
+        loaded_names = {p.name for p in loaded_plugins}
+        total = len(set(available_plugins) | loaded_names)
+
         text = f"""⌬ <b>Plugin Management</b>
 │
 ┟ <b>Loaded Plugins:</b> {len(loaded_plugins)}
 ┠ <b>Available Plugins:</b> {len(available_plugins)}
-┖ <b>Total Plugins:</b> {len(loaded_plugins) + len(available_plugins)}"""
+┖ <b>Total Plugins:</b> {total}"""
 
         btns = buttons.build_menu(2)
 
@@ -137,7 +140,7 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
 ┟ <b>Version:</b> {plugin_info.version}
 ┠ <b>Author:</b> {plugin_info.author}
 ┠ <b>Status:</b> {status}
-┠ <b>Commands:</b> {', '.join(plugin_info.commands) if plugin_info.commands else 'None'}
+┠ <b>Commands:</b> {", ".join(plugin_info.commands) if plugin_info.commands else "None"}
 ┖ <b>Description:</b> {plugin_info.description}"""
 
             btns = buttons.build_menu(2)
@@ -145,6 +148,11 @@ async def get_plugins_menu(user_id: int, stype: str = "main"):
             text = f"❌ Plugin {plugin_name} not found"
             buttons.data_button("Back", f"plugins {user_id} loaded", position="footer")
             btns = buttons.build_menu(1)
+
+    else:
+        text = f"❌ Unknown menu type: {stype}"
+        buttons.data_button("Back", f"plugins {user_id} main", position="footer")
+        btns = buttons.build_menu(1)
 
     return text, btns
 
@@ -168,6 +176,15 @@ async def edit_plugins_menu(client: Client, query):
     try:
         user_id = query.from_user.id
         data = query.data.split()
+
+        if len(data) < 3:
+            return await query.answer("Invalid data!", show_alert=True)
+
+        if (
+            data[2] in {"plugin", "load", "unload", "reload", "toggle"}
+            and len(data) < 4
+        ):
+            return await query.answer("Invalid data!", show_alert=True)
 
         if user_id != int(data[1]):
             return await query.answer("Not yours!", show_alert=True)
