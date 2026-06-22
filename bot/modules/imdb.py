@@ -2,7 +2,7 @@ from contextlib import suppress
 from pyrogram.enums import ButtonStyle
 from re import IGNORECASE, findall, search
 
-from imdbinfo import search_title, get_movie
+from imdbinfo import search_title, get_movie, get_akas
 from pycountry import countries as conn
 from pyrogram.errors import MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty
 
@@ -51,7 +51,7 @@ LIST_ITEMS = 4
 
 
 async def imdb_search(_, message):
-    if " " in message.text:
+    if message.text and " " in message.text:
         k = await send_message(message, "<i>Searching IMDB ...</i>")
         title = message.text.split(" ", 1)[1]
         user_id = message.from_user.id
@@ -60,23 +60,25 @@ async def imdb_search(_, message):
             movieid = result.group(1)
             if movie := await sync_to_async(get_movie, movieid):
                 buttons.data_button(
-                    f"🎬 {movie.title} ({getattr(movie , 'year' , 'N/A')})",
+                    f"🎬 {movie.title} ({getattr(movie, 'year', 'N/A')})",
                     f"imdb {user_id} movie {movieid}",
                 )
             else:
                 return await edit_message(k, "<i>No Results Found</i>")
         else:
-            movies = get_poster(title, bulk=True)
+            movies = await sync_to_async(get_poster, title, bulk=True)
             if not movies:
                 return await edit_message(
                     k, "<i>No Results Found</i>, Try Again or Use <b>Title ID</b>"
                 )
             for movie in movies:
                 buttons.data_button(
-                    f"🎬 {movie.title} ({getattr(movie , 'year' , 'N/A')})",
+                    f"🎬 {movie.title} ({getattr(movie, 'year', 'N/A')})",
                     f"imdb {user_id} movie {movie.id}",
                 )
-        buttons.data_button("🚫 Close 🚫", f"imdb {user_id} close", style=ButtonStyle.DANGER)
+        buttons.data_button(
+            "🚫 Close 🚫", f"imdb {user_id} close", style=ButtonStyle.DANGER
+        )
         await edit_message(
             k, "<b><i>Search Results found on IMDb.com</i></b>", buttons.build_menu(1)
         )
@@ -121,6 +123,8 @@ def get_poster(query, bulk=False, id=False, file=None):
     else:
         movieid = query
     movie = get_movie(movieid)
+    if not movie:
+        return None
     if getattr(movie, "release_date", None):
         date = movie.release_date
     elif getattr(movie, "year", None):
@@ -144,11 +148,43 @@ def get_poster(query, bulk=False, id=False, file=None):
     trailer_list = getattr(movie, "trailers", None)
     trailer = trailer_list[-1] if trailer_list else None
 
+    awards = getattr(movie, "awards", None)
+    awards_text = "N/A"
+    if awards:
+        parts = []
+        if getattr(awards, "wins", 0):
+            parts.append(f"{awards.wins} win{'s' if awards.wins != 1 else ''}")
+        if getattr(awards, "nominations", 0):
+            parts.append(
+                f"{awards.nominations} nominatio{'n' if awards.nominations == 1 else 'ns'}"
+            )
+        awards_text = ", ".join(parts) if parts else "N/A"
+
+    company_credits = getattr(movie, "company_credits", None) or {}
+    production = (
+        list_to_str([c.name for c in company_credits.get("production", [])]) or "N/A"
+    )
+
+    kind = "N/A"
+    if movie.is_series():
+        kind = "Series"
+    elif movie.is_episode():
+        kind = "Episode"
+    elif getattr(movie, "kind", None):
+        kind = movie.kind.capitalize()
+
+    try:
+        akas = get_akas(f"tt{movie.imdb_id}")
+        aka_list = [a.title for a in akas.get("akas", [])[:LIST_ITEMS]]
+        aka_text = list_to_str(aka_list) or "N/A"
+    except Exception:
+        aka_text = list_to_str(getattr(movie, "title_akas", []) or []) or "N/A"
+
     return {
         "title": movie.title,
         "trailer": trailer or "https://imdb.com/",
         "votes": str(getattr(movie, "votes", "N/A") or "N/A"),
-        "aka": list_to_str(getattr(movie, "title_akas", []) or []) or "N/A",
+        "aka": aka_text,
         "seasons": (
             len(movie.info_series.display_seasons)
             if getattr(movie, "info_series", None)
@@ -157,7 +193,7 @@ def get_poster(query, bulk=False, id=False, file=None):
         ),
         "box_office": getattr(movie, "worldwide_gross", "N/A") or "N/A",
         "localized_title": getattr(movie, "title_localized", "N/A") or "N/A",
-        "kind": (getattr(movie, "kind", "N/A") or "N/A").capitalize(),
+        "kind": kind,
         "imdb_id": f"tt{movie.imdb_id}",
         "cast": list_to_str([i.name for i in getattr(movie, "stars", [])]) or "N/A",
         "runtime": get_readable_time(int(getattr(movie, "duration", 0) or "0") * 60)
@@ -167,28 +203,28 @@ def get_poster(query, bulk=False, id=False, file=None):
         "director": list_to_str([i.name for i in getattr(movie, "directors", [])])
         or "N/A",
         "writer": list_to_str(
-            [i.name for i in getattr(movie, "categories", []).get("writer", [])]
+            [i.name for i in getattr(movie, "categories", {}).get("writer", [])]
         )
         or "N/A",
         "producer": list_to_str(
-            [i.name for i in getattr(movie, "categories", []).get("producer", [])]
+            [i.name for i in getattr(movie, "categories", {}).get("producer", [])]
         )
         or "N/A",
         "composer": list_to_str(
-            [i.name for i in getattr(movie, "categories", []).get("composer", [])]
+            [i.name for i in getattr(movie, "categories", {}).get("composer", [])]
         )
         or "N/A",
         "cinematographer": list_to_str(
             [
                 i.name
-                for i in getattr(movie, "categories", []).get("cinematographer", [])
+                for i in getattr(movie, "categories", {}).get("cinematographer", [])
             ]
         )
         or "N/A",
         "music_team": list_to_str(
             [
                 i.name
-                for i in getattr(movie, "categories", []).get("music_department", [])
+                for i in getattr(movie, "categories", {}).get("music_department", [])
             ]
         )
         or "N/A",
@@ -204,6 +240,8 @@ def get_poster(query, bulk=False, id=False, file=None):
         "url": getattr(movie, "url", "N/A") or "N/A",
         "url_cast": f"https://www.imdb.com/title/tt{movieid}/fullcredits#cast",
         "url_releaseinfo": f"https://www.imdb.com/title/tt{movieid}/releaseinfo",
+        "awards": awards_text,
+        "production": production,
     }
 
 
@@ -263,19 +301,37 @@ async def imdb_callback(_, query):
     message = query.message
     user_id = query.from_user.id
     data = query.data.split()
+    if len(data) < 4:
+        await query.answer()
+        await delete_message(message)
+        return
     if user_id != int(data[1]):
         await query.answer("Not Yours!", show_alert=True)
     elif data[2] == "movie":
         await query.answer("Processing...")
-        imdb = get_poster(query=data[3], id=True)
+        imdb = await sync_to_async(get_poster, query=data[3], id=True)
+        if not imdb:
+            await query.answer("Not Found!", show_alert=True)
+            await delete_message(message)
+            return
+        reply_to = getattr(message, "reply_to_message", None)
+        if not reply_to:
+            await delete_message(message)
+            return
         buttons = ButtonMaker()
         if imdb["trailer"]:
             if isinstance(imdb["trailer"], list):
-                buttons.url_button("▶️ IMDb Trailer ", imdb["trailer"][-1], style=ButtonStyle.PRIMARY)
+                buttons.url_button(
+                    "▶️ IMDb Trailer ", imdb["trailer"][-1], style=ButtonStyle.PRIMARY
+                )
                 imdb["trailer"] = list_to_str(imdb["trailer"])
             else:
-                buttons.url_button("▶️ IMDb Trailer ", imdb["trailer"], style=ButtonStyle.PRIMARY)
-        buttons.data_button("🚫 Close 🚫", f"imdb {user_id} close", style=ButtonStyle.DANGER)
+                buttons.url_button(
+                    "▶️ IMDb Trailer ", imdb["trailer"], style=ButtonStyle.PRIMARY
+                )
+        buttons.data_button(
+            "🚫 Close 🚫", f"imdb {user_id} close", style=ButtonStyle.DANGER
+        )
         buttons = buttons.build_menu(1)
         template = ""
         # if int(data[1]) in user_data and user_data[int(data[1])].get('imdb_temp'):
@@ -289,18 +345,18 @@ async def imdb_callback(_, query):
         if imdb.get("poster"):
             try:
                 await TgClient.bot.send_photo(
-                    chat_id=query.message.reply_to_message.chat.id,
+                    chat_id=reply_to.chat.id,
                     caption=cap,
                     photo=imdb["poster"],
-                    reply_to_message_id=query.message.reply_to_message.id,
+                    reply_to_message_id=reply_to.id,
                     reply_markup=buttons,
                 )
             except (MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty):
                 poster = imdb.get("poster").replace(".jpg", "._V1_UX360.jpg")
-                await send_message(message.reply_to_message, cap, buttons, photo=poster)
+                await send_message(reply_to, cap, buttons, photo=poster)
         else:
             await send_message(
-                message.reply_to_message,
+                reply_to,
                 cap,
                 buttons,
                 "https://telegra.ph/file/5af8d90a479b0d11df298.jpg",
@@ -308,4 +364,4 @@ async def imdb_callback(_, query):
         await delete_message(message)
     else:
         await query.answer()
-        await delete_message(message, message.reply_to_message)
+        await delete_message(message, getattr(message, "reply_to_message", None))

@@ -56,9 +56,7 @@ async def update_qb_options():
             if k.startswith("rss"):
                 del qbit_options[k]
         qbit_options["web_ui_password"] = pwd
-        await TorrentManager.qbittorrent.app.set_preferences(
-            {"web_ui_password": pwd}
-        )
+        await TorrentManager.qbittorrent.app.set_preferences({"web_ui_password": pwd})
     else:
         if qbit_options.get("web_ui_password") in ("admin", "admin1", ""):
             qbit_options["web_ui_password"] = pwd
@@ -90,9 +88,7 @@ async def update_nzb_options():
                     f"Failed to get SABnzbd options after {retries} retries: {e}"
                 )
                 return
-            LOGGER.warning(
-                f"SABnzbd not ready, retrying ({i + 1}/{retries}): {e}"
-            )
+            LOGGER.warning(f"SABnzbd not ready, retrying ({i + 1}/{retries}): {e}")
             await sleep(2)
 
 
@@ -136,15 +132,23 @@ async def load_settings():
             database.db.settings.config.find_one(deploy_filter, {"_id": 0}),
             database.db.settings.files.find_one(deploy_filter, {"_id": 0}),
             database.db.settings.aria2c.find_one(deploy_filter, {"_id": 0}),
-            database.db.settings.qbittorrent.find_one(
-                deploy_filter, {"_id": 0}
-            ) if not Config.DISABLE_TORRENTS else sleep(0),
+            database.db.settings.qbittorrent.find_one(deploy_filter, {"_id": 0})
+            if not Config.DISABLE_TORRENTS
+            else sleep(0),
             database.db.settings.nzb.find_one(deploy_filter, {"_id": 0}),
             database.db.users[PART].find_one(),
             database.db.rss[PART].find_one(),
         )
 
-        config_dict, pf_dict, a2c_options, qbit_opt, nzb_opt, user_exists, rss_exists = results
+        (
+            config_dict,
+            pf_dict,
+            a2c_options,
+            qbit_opt,
+            nzb_opt,
+            user_exists,
+            rss_exists,
+        ) = results
 
         if old_config is None:
             await database.db.settings.deployConfig.replace_one(
@@ -155,7 +159,9 @@ async def load_settings():
                 if v is not None:
                     config_dict.setdefault(k, v)
         elif old_config != config_file:
-            LOGGER.info("Updating.. Deploy Config changed, merging new config.py values")
+            LOGGER.info(
+                "Updating.. Deploy Config changed, merging new config.py values"
+            )
             config_dict = config_dict or {}
             for k, v in config_file.items():
                 if k not in old_config or old_config.get(k) != v:
@@ -370,12 +376,10 @@ async def load_configurations():
 
     from bot import service_cores
 
-    cmd = f"chmod 600 .netrc && cp .netrc /root/.netrc && chmod +x setpkgs.sh && ./setpkgs.sh {BinConfig.ARIA2_NAME} \"{service_cores}\" {Config.CPU_LIMIT}"
+    cmd = f'chmod 600 .netrc && cp .netrc /root/.netrc && chmod +x setpkgs.sh && ./setpkgs.sh {BinConfig.ARIA2_NAME} "{service_cores}" {Config.CPU_LIMIT}'
     if not Config.DISABLE_NZB:
         cmd += f" {BinConfig.SABNZBD_NAME}"
-    await (
-        await create_subprocess_shell(cmd)
-    ).wait()
+    await (await create_subprocess_shell(cmd)).wait()
 
     if await aiopath.exists("cfg.zip"):
         if await aiopath.exists("/JDownloader/cfg"):
@@ -413,6 +417,7 @@ async def load_configurations():
         access_pwd = getenv("WEB_ACCESS_PASSWORD", "") or Config.WEB_ACCESS_PASSWORD
         if not access_pwd:
             from secrets import token_bytes
+
             access_pwd = token_bytes(32).hex()
             Config.WEB_ACCESS_PASSWORD = access_pwd
         env = f"WEB_ACCESS_PASSWORD={access_pwd} "
@@ -422,4 +427,5 @@ async def load_configurations():
         await create_subprocess_shell("python3 cron_boot.py")
 
     from ..helper.ext_utils.tunnel_monitor import apply_tunnel_url_once
+
     await apply_tunnel_url_once()

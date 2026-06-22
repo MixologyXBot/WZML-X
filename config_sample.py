@@ -7,9 +7,7 @@ DATABASE_URL = ""
 
 # OPTIONAL CONFIG
 DEFAULT_LANG = "en"
-TG_PROXY = (
-    {}
-)  # {"scheme": ”socks5”, "hostname": ””, "port": 1234, "username": ”user”, "password": ”pass”}
+TG_PROXY = {}  # {"scheme": ”socks5”, "hostname": ””, "port": 1234, "username": ”user”, "password": ”pass”}
 USER_SESSION_STRING = ""
 CMD_SUFFIX = ""
 AUTHORIZED_CHATS = ""
@@ -26,7 +24,9 @@ USE_SERVICE_ACCOUNTS = False
 NAME_SWAP = ""
 FFMPEG_CMDS = {}
 UPLOAD_PATHS = {}
-WEB_ACCESS_PASSWORD=""  # Secret for deriving proxy passwords. Logs derived passwords at startup.
+WEB_ACCESS_PASSWORD = (
+    ""  # Secret for deriving proxy passwords. Logs derived passwords at startup.
+)
 
 # Hyper Tg Downloader
 HELPER_TOKENS = ""
