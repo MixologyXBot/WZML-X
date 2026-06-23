@@ -16,6 +16,8 @@ from ..helper.telegram_helper.message_utils import send_message, edit_message
 
 async def gen_mediainfo(message, link=None, media=None, mmsg=None):
     temp_send = await send_message(message, "<i>Generating MediaInfo...</i>")
+    des_path = None
+    tc = ""
     try:
         path = "mediainfo/"
         if not await aiopath.isdir(path):
@@ -51,7 +53,8 @@ async def gen_mediainfo(message, link=None, media=None, mmsg=None):
         LOGGER.error(e)
         await edit_message(temp_send, f"MediaInfo Stopped due to {str(e)}")
     finally:
-        await aioremove(des_path)
+        if des_path and await aiopath.exists(des_path):
+            await aioremove(des_path)
     link_id = (await telegraph.create_page(title="MediaInfo X", content=tc))["path"]
     await temp_send.edit(
         f"<b>MediaInfo:</b>\n\n➲ <b>Link :</b> https://graph.org/{link_id}",
