@@ -121,9 +121,14 @@ class TaskListener(TaskConfig):
             and Config.DATABASE_URL
         ):
             await database.add_incomplete_task(
-                self.message.chat.id, self.message.link, self.tag,
-                self.message.text or "", self.user_id,
-                self.message.reply_to_message.id if self.message.reply_to_message else 0,
+                self.message.chat.id,
+                self.message.link,
+                self.tag,
+                self.message.text or "",
+                self.user_id,
+                self.message.reply_to_message.id
+                if self.message.reply_to_message
+                else 0,
                 self.dump_msg_id,
             )
 
@@ -357,7 +362,9 @@ class TaskListener(TaskConfig):
             LOGGER.info(f"Leech Name: {self.name}")
             tg = TelegramUploader(self, up_dir)
             async with task_dict_lock:
-                task_dict[self.mid] = TelegramStatus(self, tg, gid, "up", "hul" if tg._hu else "")
+                task_dict[self.mid] = TelegramStatus(
+                    self, tg, gid, "up", "hul" if tg._hu else ""
+                )
             await gather(
                 update_status_message(self.message.chat.id),
                 tg.upload(),

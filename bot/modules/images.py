@@ -51,7 +51,9 @@ async def pictures(_, message):
             f"<b>No Photo to Show !</b> Add by <code>/{BotCommands.AddImageCommand}</code>",
         )
     else:
-        to_edit = await send_message(message, "<i>Generating Grid of your Images...</i>")
+        to_edit = await send_message(
+            message, "<i>Generating Grid of your Images...</i>"
+        )
         buttons = ButtonMaker()
         user_id = message.from_user.id
         buttons.data_button("\u00ab", f"images {user_id} turn -1")
@@ -97,7 +99,9 @@ async def pics_callback(_, query):
         buttons.data_button("Close", f"images {data[1]} close")
         buttons.data_button("Remove All", f"images {data[1]} removall", "footer")
         if message.media:
-            await edit_message(message, pic_info, buttons.build_menu(2), photo=Config.IMAGES[ind])
+            await edit_message(
+                message, pic_info, buttons.build_menu(2), photo=Config.IMAGES[ind]
+            )
         else:
             await delete_message(message)
             await send_message(
@@ -130,7 +134,9 @@ async def pics_callback(_, query):
         buttons.data_button("Close", f"images {data[1]} close")
         buttons.data_button("Remove All", f"images {data[1]} removall", "footer")
         if message.media:
-            await edit_message(message, pic_info, buttons.build_menu(2), photo=Config.IMAGES[ind])
+            await edit_message(
+                message, pic_info, buttons.build_menu(2), photo=Config.IMAGES[ind]
+            )
         else:
             await delete_message(message)
             await send_message(

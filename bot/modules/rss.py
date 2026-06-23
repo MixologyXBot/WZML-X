@@ -15,7 +15,12 @@ from re import compile, I
 from .. import scheduler, rss_dict, LOGGER
 from ..core.config_manager import Config
 from ..core.tg_client import TgClient
-from ..helper.ext_utils.bot_utils import new_task, arg_parser, get_size_bytes, resolve_command
+from ..helper.ext_utils.bot_utils import (
+    new_task,
+    arg_parser,
+    get_size_bytes,
+    resolve_command,
+)
 from ..helper.ext_utils.status_utils import get_readable_file_size
 from ..helper.ext_utils.db_handler import database
 from ..helper.ext_utils.exceptions import RssShutdownException
@@ -42,12 +47,23 @@ headers = {
 
 
 def _json_to_rss(data, feed_title="TorAPI"):
-    items = data if isinstance(data, list) else data.get("data", []) if isinstance(data, dict) else []
+    items = (
+        data
+        if isinstance(data, list)
+        else data.get("data", [])
+        if isinstance(data, dict)
+        else []
+    )
     if not items:
         return None
     entries = ""
     for item in items:
-        title = item.get("Name", "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        title = (
+            item.get("Name", "")
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
         url = item.get("Url", "")
         torrent = item.get("Torrent", "")
         size = item.get("Size", "")
@@ -168,7 +184,9 @@ async def update_rss_menu(query):
 @new_task
 async def get_rss_menu(_, message):
     if Config.DISABLE_RSS:
-        await send_message(message, "RSS monitoring is currently disabled by the Bot Owner.")
+        await send_message(
+            message, "RSS monitoring is currently disabled by the Bot Owner."
+        )
         return
     msg, button = await rss_menu(message)
     await send_message(message, msg, button)

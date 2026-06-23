@@ -80,9 +80,7 @@ class TgClient:
             LOGGER.info(f"Helper Bot [@{hbot.me.username}] Started!")
             cls.helper_bots[no], cls.helper_loads[no] = hbot, 0
         except FloodWait as e:
-            LOGGER.warning(
-                f"Helper Bot{no} FloodWait: Retrying in {e.value}s..."
-            )
+            LOGGER.warning(f"Helper Bot{no} FloodWait: Retrying in {e.value}s...")
             bot_loop.create_task(cls._retry_hclient(no, b_token, e.value, proxy))
         except Exception as e:
             LOGGER.error(f"Failed to start helper bot {no} from HELPER_TOKENS. {e}")
@@ -118,8 +116,11 @@ class TgClient:
             await gather(
                 *(
                     cls.start_hclient(
-                        no, b_token,
-                        bot_proxies[no - 1] if bot_proxies and no - 1 < len(bot_proxies) else None,
+                        no,
+                        b_token,
+                        bot_proxies[no - 1]
+                        if bot_proxies and no - 1 < len(bot_proxies)
+                        else None,
                     )
                     for no, b_token in enumerate(Config.HELPER_TOKENS.split(), start=1)
                 )
@@ -179,8 +180,11 @@ class TgClient:
             await gather(
                 *(
                     cls.start_huser(
-                        no, session_string,
-                        user_proxies[no - 1] if user_proxies and no - 1 < len(user_proxies) else None,
+                        no,
+                        session_string,
+                        user_proxies[no - 1]
+                        if user_proxies and no - 1 < len(user_proxies)
+                        else None,
                     )
                     for no, session_string in enumerate(
                         Config.HELPER_STRINGS.split(), start=1

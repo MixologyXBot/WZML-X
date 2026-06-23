@@ -165,11 +165,7 @@ def _get_mega_account_info_sync(email: str, password: str) -> str:
     from time import sleep, gmtime, strftime
 
     if not email or not password:
-        return (
-            "⌬ <b>Mega Account Info</b>\n"
-            "│\n"
-            "┖ <i>No credentials configured.</i>"
-        )
+        return "⌬ <b>Mega Account Info</b>\n│\n┖ <i>No credentials configured.</i>"
 
     base_dir = mkdtemp(prefix=".mega_account_")
 
@@ -182,7 +178,12 @@ def _get_mega_account_info_sync(email: str, password: str) -> str:
         for expected_type, method, args, step_name in [
             (MegaRequest.TYPE_LOGIN, api.login, (email, password), "login"),
             (MegaRequest.TYPE_FETCH_NODES, api.fetchNodes, (), "fetchNodes"),
-            (MegaRequest.TYPE_ACCOUNT_DETAILS, api.getAccountDetails, (), "getAccountDetails"),
+            (
+                MegaRequest.TYPE_ACCOUNT_DETAILS,
+                api.getAccountDetails,
+                (),
+                "getAccountDetails",
+            ),
         ]:
             listener._done = False
             listener.expected_type = expected_type
@@ -196,7 +197,9 @@ def _get_mega_account_info_sync(email: str, password: str) -> str:
                     break
                 sleep(0.1)
             else:
-                return f"⌬ <b>Mega Account Info</b>\n│\n┖ {step_name} timed out after 5s"
+                return (
+                    f"⌬ <b>Mega Account Info</b>\n│\n┖ {step_name} timed out after 5s"
+                )
 
             if listener.error:
                 return f"⌬ <b>Mega Account Info</b>\n│\n┖ {step_name} failed: {listener.error}"
@@ -213,7 +216,11 @@ def _get_mega_account_info_sync(email: str, password: str) -> str:
         pro_expiration = info["pro_expiration"]
 
         storage_pct = round(storage_used / max(storage_max, 1) * 100, 2)
-        transfer_pct = round(transfer_used / max(transfer_max, 1) * 100, 2) if transfer_max else None
+        transfer_pct = (
+            round(transfer_used / max(transfer_max, 1) * 100, 2)
+            if transfer_max
+            else None
+        )
 
         pro_names = {0: "Free", 1: "Pro I", 2: "Pro II", 3: "Pro III", 4: "Lite"}
         pro_name = pro_names.get(pro_level, f"Level {pro_level}")
@@ -239,18 +246,14 @@ def _get_mega_account_info_sync(email: str, password: str) -> str:
                 f"{get_readable_file_size(transfer_max)} ({transfer_pct}%)\n"
             )
         else:
-            text += (
-                f"┠ <b>Transfer</b> → {get_readable_file_size(transfer_used)} / Unlimited\n"
-            )
+            text += f"┠ <b>Transfer</b> → {get_readable_file_size(transfer_used)} / Unlimited\n"
 
         if listener.root_handle is not None:
             try:
                 num_files = info["num_files"]
                 num_folders = info["num_folders"]
                 text += (
-                    f"┃\n"
-                    f"┠ <b>Files</b> → {num_files}\n"
-                    f"┖ <b>Folders</b> → {num_folders}"
+                    f"┃\n┠ <b>Files</b> → {num_files}\n┖ <b>Folders</b> → {num_folders}"
                 )
             except Exception:
                 text += "┃\n┖ <b>Files/Folders</b> → N/A"

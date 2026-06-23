@@ -66,6 +66,7 @@ def get_system_resources():
     else:
         try:
             from psutil import virtual_memory
+
             ram_mb = virtual_memory().total // (1024 * 1024)
         except ImportError:
             ram_mb = 512
@@ -90,7 +91,6 @@ def get_system_resources_cached():
 
 
 class SmartLock:
-
     def __init__(self, pause_targets=None, max_slots=None):
         self._lock = Lock()
         self._semaphore = Semaphore(1)
@@ -159,10 +159,12 @@ class SmartLock:
             try:
                 if t == "nzb" and not Config.DISABLE_NZB:
                     from .. import sabnzbd_client
+
                     if sabnzbd_client.LOGGED_IN:
                         await sabnzbd_client.pause_all()
                 elif t == "jd" and not Config.DISABLE_JD:
                     from ..core.jdownloader_booter import jdownloader
+
                     if jdownloader.is_connected:
                         await jdownloader.device.downloadcontroller.stop_downloads()
             except (ConnectionError, TimeoutError, OSError):
@@ -173,10 +175,12 @@ class SmartLock:
             try:
                 if t == "nzb" and not Config.DISABLE_NZB:
                     from .. import sabnzbd_client
+
                     if sabnzbd_client.LOGGED_IN:
                         await sabnzbd_client.resume_all()
                 elif t == "jd" and not Config.DISABLE_JD:
                     from ..core.jdownloader_booter import jdownloader
+
                     if jdownloader.is_connected:
                         await jdownloader.device.downloadcontroller.start_downloads()
             except (ConnectionError, TimeoutError, OSError):

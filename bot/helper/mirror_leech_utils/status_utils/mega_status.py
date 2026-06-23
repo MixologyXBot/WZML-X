@@ -23,7 +23,10 @@ class MegaDownloadStatus:
             return self.listener.size
         if self._status == "up" and hasattr(self._obj, "_size") and self._obj._size > 0:
             return self._obj._size
-        if hasattr(self._obj, "_total_folder_size") and self._obj._total_folder_size > 0:
+        if (
+            hasattr(self._obj, "_total_folder_size")
+            and self._obj._total_folder_size > 0
+        ):
             return self._obj._total_folder_size
         if self._init_size > 0:
             return self._init_size

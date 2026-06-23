@@ -49,7 +49,7 @@ link5 -m folder3
 link6
 so link1 and link2 content will be uploaded from same folder which is folder1
 link3 and link4 content will be uploaded from same folder also which is folder2
-link5 will uploaded alone inside new folder named folder3
+link5 will be uploaded alone inside new folder named folder3
 link6 will get uploaded normally alone
 """
 
@@ -77,7 +77,7 @@ To add leech destination:
 -up id/@username/pm
 -up b:id/@username/pm (b: means leech by bot) (id or username of the chat or write pm means private message so bot will send the files in private to you)
 when you should use b:(leech by bot)? When your default settings is leech by user and you want to leech by bot for specific task.
--up u:id/@username(u: means leech by user) This incase OWNER added USER_STRING_SESSION.
+-up u:id/@username(u: means leech by user) This in case OWNER added USER_STRING_SESSION.
 -up h:id/@username(hybrid leech) h: to upload files by bot and user based on file size.
 -up id/@username|topic_id(leech in specific chat and topic) add | without space and write topic id after chat id or username.
 
@@ -87,10 +87,10 @@ DEFAULT_UPLOAD doesn't affect on leech cmds.
 
 user_download = """<b>User Download</b>: link
 
-/cmd tp:link to download using owner token.pickle incase service account enabled.
-/cmd sa:link to download using service account incase service account disabled.
-/cmd tp:gdrive_id to download using token.pickle and file_id incase service account enabled.
-/cmd sa:gdrive_id to download using service account and file_id incase service account disabled.
+/cmd tp:link to download using owner token.pickle in case service account enabled.
+/cmd sa:link to download using service account in case service account disabled.
+/cmd tp:gdrive_id to download using token.pickle and file_id in case service account enabled.
+/cmd sa:gdrive_id to download using service account and file_id in case service account disabled.
 /cmd mtp:gdrive_id or mtp:link to download using user token.pickle uploaded from usetting
 /cmd mrcc:remote:path to download using user rclone config uploaded from usetting
 you can simply edit upload using owner/user token/config from usetting without adding mtp: or mrcc: before the path/id"""
@@ -110,13 +110,13 @@ link2 -z -n new name -up remote2:path2
 link3 -e -n new name -up remote2:path2
 Reply to this example by this cmd -> /cmd -b(bulk)
 
-Note: Any arg along with the cmd will be setted to all links
+Note: Any arg along with the cmd will be set to all links
 /cmd -b -up remote: -z -m folder name (all links contents in one zipped folder uploaded to one destination)
-so you can't set different upload destinations along with link incase you have added -m along with cmd
+so you can't set different upload destinations along with link in case you have added -m along with cmd
 You can set start and end of the links from the bulk like seed, with -b start:end or only end by -b :end or only start by -b start.
 The default start is from zero(first link) to inf."""
 
-rlone_dl = """<b>Rclone Download</b>:
+rclone_dl = """<b>Rclone Download</b>:
 
 Treat rclone paths exactly like links
 /cmd main:dump/ubuntu.iso or rcl(To select config, remote and path)
@@ -217,7 +217,7 @@ You can simply edit using owner/user config from usetting without adding mrcc: b
 name_swap = r"""<b>Name Substitution</b>: -ns
 /cmd link -ns script/code/s | mirror/leech | tea/ /s | clone | cpu/ | \[mltb\]/mltb | \\text\\/text/s
 This will affect on all files. Format: wordToReplace/wordToReplaceWith/sensitiveCase
-Word Subtitions. You can add pattern instead of normal text. Timeout: 60 sec
+Word Substitutions. You can add pattern instead of normal text. Timeout: 60 sec
 NOTE: You must add \ before any character, those are the characters: \^$.|?*+()[]{}-
 1. script will get replaced by code with sensitive case
 2. mirror will get replaced by leech
@@ -247,9 +247,9 @@ Notes:
 3. To execute one of pre-added lists in bot like: ({"subtitle": ["-i mltb.mkv -c copy -c:s srt mltb.mkv"]}), you must use -ff subtitle (list key)
 Examples: ["-i mltb.mkv -c copy -c:s srt mltb.mkv", "-i mltb.video -c copy -c:s srt mltb", "-i mltb.m4a -c:a libmp3lame -q:a 2 mltb.mp3", "-i mltb.audio -c:a libmp3lame -q:a 2 mltb.mp3", "-i mltb -map 0:a -c copy mltb.mka -map 0:s -c copy mltb.srt"]
 Here I will explain how to use mltb.* which is reference to files you want to work on.
-1. First cmd: the input is mltb.mkv so this cmd will work only on mkv videos and the output is mltb.mkv also so all outputs is mkv. -del will delete the original media after complete run of the cmd.
-2. Second cmd: the input is mltb.video so this cmd will work on all videos and the output is only mltb so the extenstion is same as input files.
-3. Third cmd: the input in mltb.m4a so this cmd will work only on m4a audios and the output is mltb.mp3 so the output extension is mp3.
+1. First cmd: the input is mltb.mkv so this cmd will work only on mkv videos and the output is mltb.mkv also so all outputs are mkv. -del will delete the original media after complete run of the cmd.
+2. Second cmd: the input is mltb.video so this cmd will work on all videos and the output is only mltb so the extension is the same as input files.
+3. Third cmd: the input is mltb.m4a so this cmd will work only on m4a audios and the output is mltb.mp3 so the output extension is mp3.
 4. Fourth cmd: the input is mltb.audio so this cmd will work on all audios and the output is mltb.mp3 so the output extension is mp3."""
 
 metadata = """<b>Metadata</b>: -meta
@@ -325,7 +325,7 @@ MIRROR_HELP_DICT = {
     "Rclone-Flags": rcf,
     "Bulk": bulk,
     "Join": join,
-    "Rclone-DL": rlone_dl,
+    "Rclone-DL": rclone_dl,
     "Tg-Links": tg_links,
     "Sample-Video": sample_video,
     "Screenshot": screenshot,
@@ -362,7 +362,7 @@ Title3 link -c cmd -d ratio:time -z password
 Example: Title https://www.rss-url.com -inf 1080 or 720 or 144p|mkv or mp4|hevc -exf flv or web|xxx
 This filter will parse links that its titles contain `(1080 or 720 or 144p) and (mkv or mp4) and hevc` and doesn't contain (flv or web) and xxx words. You can add whatever you want.
 
-Another example: -inf  1080  or 720p|.web. or .webrip.|hvec or x264. This will parse titles that contain ( 1080  or 720p) and (.web. or .webrip.) and (hvec or x264). I have added space before and after 1080 to avoid wrong matching. If this `10805695` number in title it will match 1080 if added 1080 without spaces after it.
+Another example: -inf  1080  or 720p|.web. or .webrip.|hevc or x264. This will parse titles that contain ( 1080  or 720p) and (.web. or .webrip.) and (hevc or x264). I have added space before and after 1080 to avoid wrong matching. If this `10805695` number in title it will match 1080 if added 1080 without spaces after it.
 
 Filter Notes:
 1. | means and.
@@ -435,7 +435,7 @@ BOT_COMMANDS = get_bot_commands()
 def get_help_string():
     from ..telegram_helper.bot_commands import BotCommands
 
-    help_lines = ["NOTE: Try each command without any argument to see more detalis."]
+    help_lines = ["NOTE: Try each command without any argument to see more details."]
 
     commands = BotCommands.get_commands()
 

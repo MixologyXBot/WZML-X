@@ -16,7 +16,13 @@ from ...ext_utils.task_manager import (
 )
 from ...ext_utils.files_utils import clean_download
 from ...ext_utils.links_utils import get_mega_subfolder_handle, is_mega_folder_link
-from ...listeners.mega_listener import AsyncMega, MegaAppListener, MegaFolderListener, _mega_error_format, _MEGA_SDK_LOCK
+from ...listeners.mega_listener import (
+    AsyncMega,
+    MegaAppListener,
+    MegaFolderListener,
+    _mega_error_format,
+    _MEGA_SDK_LOCK,
+)
 from ...mirror_leech_utils.status_utils.mega_status import MegaDownloadStatus
 from ...mirror_leech_utils.status_utils.queue_status import QueueStatus
 
@@ -24,7 +30,9 @@ from ...mirror_leech_utils.status_utils.queue_status import QueueStatus
 _ACTIVE_MEGA_LINKS = set()
 _ACTIVE_MEGA_LINKS_LOCK = AsyncLock()
 
-_MEGA_BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+_MEGA_BASE64_ALPHABET = (
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+)
 
 
 def _mega_base64_to_int(handle_str: str) -> int | None:
@@ -97,7 +105,9 @@ async def _release_link(link: str):
 
 async def add_mega_download(listener, path):
     if Config.DISABLE_MEGA:
-        await listener.on_download_error("Mega Link downloads are currently disabled by the Bot Owner.")
+        await listener.on_download_error(
+            "Mega Link downloads are currently disabled by the Bot Owner."
+        )
         return
 
     user_dict = user_data.get(listener.user_id, {})
@@ -105,7 +115,9 @@ async def add_mega_download(listener, path):
     mega_password = user_dict.get("MEGA_PASSWORD") or Config.MEGA_PASSWORD
 
     if not await _reserve_link(listener.link):
-        await listener.on_download_error("This Mega link is already being downloaded! Wait for it to finish.")
+        await listener.on_download_error(
+            "This Mega link is already being downloaded! Wait for it to finish."
+        )
         return
 
     async_api = None
@@ -113,7 +125,9 @@ async def add_mega_download(listener, path):
     try:
         sdk_gid = token_hex(5)
         await makedirs(path, exist_ok=True)
-        mega_base = os.path.join(os.path.dirname(path.rstrip("/")), ".mega_sdk", sdk_gid)
+        mega_base = os.path.join(
+            os.path.dirname(path.rstrip("/")), ".mega_sdk", sdk_gid
+        )
         mega_dir = os.path.join(mega_base, "main")
         await makedirs(mega_dir, exist_ok=True)
 
@@ -152,7 +166,9 @@ async def add_mega_download(listener, path):
                 return
             if not dl_listener.node:
                 LOGGER.info("Mega: no root node after fetchNodes")
-                await listener.on_download_error("Failed to get root node for MEGA folder")
+                await listener.on_download_error(
+                    "Failed to get root node for MEGA folder"
+                )
                 return
             if subfolder_handle:
                 LOGGER.info("Mega: looking up subfolder handle=%s", subfolder_handle)
@@ -164,7 +180,9 @@ async def add_mega_download(listener, path):
                     except Exception as e:
                         LOGGER.error("Mega: getNodeByHandle failed: %s", e)
                 if not node:
-                    await listener.on_download_error("Subfolder not found in the MEGA link")
+                    await listener.on_download_error(
+                        "Subfolder not found in the MEGA link"
+                    )
                     return
                 dl_listener.node = node
                 dl_listener._cache_node_data(node)
@@ -187,13 +205,17 @@ async def add_mega_download(listener, path):
                 if listener.is_cancelled or mega_listener.is_cancelled:
                     return
                 if mega_listener.error:
-                    await listener.on_download_error(_mega_error_format(mega_listener.error))
+                    await listener.on_download_error(
+                        _mega_error_format(mega_listener.error)
+                    )
                     return
                 await async_api.fetchNodes()
                 if listener.is_cancelled or mega_listener.is_cancelled:
                     return
                 if mega_listener.error:
-                    await listener.on_download_error(_mega_error_format(mega_listener.error))
+                    await listener.on_download_error(
+                        _mega_error_format(mega_listener.error)
+                    )
                     return
             await async_api.getPublicNode(listener.link)
             if listener.is_cancelled or mega_listener.is_cancelled:
@@ -203,7 +225,9 @@ async def add_mega_download(listener, path):
                 await listener.on_download_error("Failed to resolve MEGA link")
                 return
 
-        listener.name = listener.name or dl_listener._name or f"MEGA_Download_{token_hex(5)}"
+        listener.name = (
+            listener.name or dl_listener._name or f"MEGA_Download_{token_hex(5)}"
+        )
         listener.size = dl_listener._size if dl_listener._size < (1 << 62) else -1
         if listener.size <= 0 and node:
             try:
@@ -233,7 +257,9 @@ async def add_mega_download(listener, path):
                 return
 
         async with task_dict_lock:
-            task_dict[listener.mid] = MegaDownloadStatus(listener, dl_listener, gid, "dl")
+            task_dict[listener.mid] = MegaDownloadStatus(
+                listener, dl_listener, gid, "dl"
+            )
 
         if added_to_queue:
             await listener.on_download_start()
@@ -276,10 +302,12 @@ async def add_mega_download(listener, path):
             if not dl_listener.retryable_error:
                 return
             if attempt >= 4:
-                await listener.on_download_error(_mega_error_format(dl_listener.retryable_error))
+                await listener.on_download_error(
+                    _mega_error_format(dl_listener.retryable_error)
+                )
                 return
             await clean_download(download_path)
-            await asleep(2 ** attempt)
+            await asleep(2**attempt)
 
     except Exception as e:
         LOGGER.error(f"Unexpected error in add_mega_download: {e}", exc_info=True)
@@ -291,11 +319,19 @@ async def add_mega_download(listener, path):
                 async with _MEGA_SDK_LOCK:
                     with suppress(Exception):
                         await async_api.logout()
-                    if async_api.api is not None and async_api._mega_listener is not None:
+                    if (
+                        async_api.api is not None
+                        and async_api._mega_listener is not None
+                    ):
                         with suppress(Exception):
                             async_api.api.removeListener(async_api._mega_listener)
-                    if async_api.folder_api is not None and async_api._folder_listener is not None:
+                    if (
+                        async_api.folder_api is not None
+                        and async_api._folder_listener is not None
+                    ):
                         with suppress(Exception):
-                            async_api.folder_api.removeListener(async_api._folder_listener)
+                            async_api.folder_api.removeListener(
+                                async_api._folder_listener
+                            )
         await _release_link(listener.link)
         await clean_download(mega_base)

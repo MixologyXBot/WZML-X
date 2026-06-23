@@ -37,6 +37,7 @@ class HypertgUpload(HypertgTransfer):
         super().__init__(obj)
         self._up_file = ""
         self._up_size = 0
+
     @staticmethod
     def _parse_missing_part(exc):
         val = getattr(exc, "value", None)
@@ -48,7 +49,9 @@ class HypertgUpload(HypertgTransfer):
         LOGGER.warning(f"HypertgUL parse_part fallback=0 exc={exc}")
         return 0
 
-    def _build_media(self, input_file, mime_type, media_type, attributes, thumb_file=None):
+    def _build_media(
+        self, input_file, mime_type, media_type, attributes, thumb_file=None
+    ):
         if media_type == "photo":
             return raw.types.InputMediaUploadedPhoto(file=input_file)
         if media_type == "video":
@@ -90,7 +93,9 @@ class HypertgUpload(HypertgTransfer):
         try:
             if self.clients:
                 async with _ul_load_lock:
-                    ul_ci = min(self.clients.keys(), key=lambda i: self.work_loads.get(i, 0))
+                    ul_ci = min(
+                        self.clients.keys(), key=lambda i: self.work_loads.get(i, 0)
+                    )
                     self.work_loads[ul_ci] = self.work_loads.get(ul_ci, 0) + 1
                     _concurrent = sum(1 for v in self.work_loads.values() if v > 0)
                 up_client = self.clients[ul_ci]
@@ -102,7 +107,7 @@ class HypertgUpload(HypertgTransfer):
                 up_client = client
                 _concurrent = 1
 
-            _is_bot = bool(getattr(getattr(up_client, 'me', None), 'is_bot', True))
+            _is_bot = bool(getattr(getattr(up_client, "me", None), "is_bot", True))
             n_workers = max(1, (4 if _is_bot else 2) // _concurrent)
 
             fp = open(file_path, "rb", buffering=4 * 1024 * 1024)
@@ -112,13 +117,17 @@ class HypertgUpload(HypertgTransfer):
             ak, is_cross = await self.create_auth(client, dc_id, tm)
             ea = None
             if is_cross:
-                ea = await client.invoke(raw.functions.auth.ExportAuthorization(dc_id=dc_id))
+                ea = await client.invoke(
+                    raw.functions.auth.ExportAuthorization(dc_id=dc_id)
+                )
 
             async def _worker(wid):
                 s = Session(up_client, dc_id, ak, tm, is_media=True)
                 await self.start_session(s, mode=1)
                 if ea is not None:
-                    await s.invoke(raw.functions.auth.ImportAuthorization(id=ea.id, bytes=ea.bytes))
+                    await s.invoke(
+                        raw.functions.auth.ImportAuthorization(id=ea.id, bytes=ea.bytes)
+                    )
                 try:
                     while True:
                         try:
@@ -154,7 +163,7 @@ class HypertgUpload(HypertgTransfer):
                             except Exception:
                                 if attempt == 4:
                                     break
-                                await sleep(2 ** attempt)
+                                await sleep(2**attempt)
                 finally:
                     try:
                         await s.stop()
@@ -163,7 +172,11 @@ class HypertgUpload(HypertgTransfer):
 
             workers = [create_task(_worker(i)) for i in range(n_workers)]
 
-            rpc_fn = raw.functions.upload.SaveBigFilePart if is_big else raw.functions.upload.SaveFilePart
+            rpc_fn = (
+                raw.functions.upload.SaveBigFilePart
+                if is_big
+                else raw.functions.upload.SaveFilePart
+            )
             POOL = 4 * 1024 * 1024
             acc = 0
             part = 0
@@ -184,8 +197,10 @@ class HypertgUpload(HypertgTransfer):
                     end = off + PART_SIZE
                     chunk = buf[off:end]
                     rpc = rpc_fn(
-                        file_id=file_id, file_part=part,
-                        file_total_parts=file_total_parts, bytes=chunk,
+                        file_id=file_id,
+                        file_part=part,
+                        file_total_parts=file_total_parts,
+                        bytes=chunk,
                     )
                     while True:
                         try:
@@ -208,12 +223,14 @@ class HypertgUpload(HypertgTransfer):
 
             if is_big:
                 result = raw.types.InputFileBig(
-                    id=file_id, parts=file_total_parts,
+                    id=file_id,
+                    parts=file_total_parts,
                     name=ospath.basename(file_path),
                 )
             else:
                 result = raw.types.InputFile(
-                    id=file_id, parts=file_total_parts,
+                    id=file_id,
+                    parts=file_total_parts,
                     name=ospath.basename(file_path),
                 )
             return result
@@ -259,13 +276,19 @@ class HypertgUpload(HypertgTransfer):
                 if not chunk:
                     break
                 h.update(chunk)
-                await s.invoke(raw.functions.upload.SaveFilePart(
-                    file_id=file_id, file_part=part, bytes=chunk,
-                ))
+                await s.invoke(
+                    raw.functions.upload.SaveFilePart(
+                        file_id=file_id,
+                        file_part=part,
+                        bytes=chunk,
+                    )
+                )
                 self._obj._processed_bytes += len(chunk)
             return raw.types.InputFile(
-                id=file_id, parts=file_total_parts,
-                name=ospath.basename(file_path), md5_checksum=h.hexdigest(),
+                id=file_id,
+                parts=file_total_parts,
+                name=ospath.basename(file_path),
+                md5_checksum=h.hexdigest(),
             )
         finally:
             try:
@@ -289,13 +312,19 @@ class HypertgUpload(HypertgTransfer):
                 if not chunk:
                     break
                 h.update(chunk)
-                await client.invoke(raw.functions.upload.SaveFilePart(
-                    file_id=file_id, file_part=part, bytes=chunk,
-                ))
+                await client.invoke(
+                    raw.functions.upload.SaveFilePart(
+                        file_id=file_id,
+                        file_part=part,
+                        bytes=chunk,
+                    )
+                )
                 self._obj._processed_bytes += len(chunk)
             return raw.types.InputFile(
-                id=file_id, parts=file_total_parts,
-                name=ospath.basename(file_path), md5_checksum=h.hexdigest(),
+                id=file_id,
+                parts=file_total_parts,
+                name=ospath.basename(file_path),
+                md5_checksum=h.hexdigest(),
             )
         finally:
             fp.close()
@@ -311,22 +340,36 @@ class HypertgUpload(HypertgTransfer):
                 return
             if isinstance(input_file, raw.types.InputFileBig):
                 rpc = raw.functions.upload.SaveBigFilePart(
-                    file_id=input_file.id, file_part=part_num,
-                    file_total_parts=input_file.parts, bytes=chunk,
+                    file_id=input_file.id,
+                    file_part=part_num,
+                    file_total_parts=input_file.parts,
+                    bytes=chunk,
                 )
             else:
                 rpc = raw.functions.upload.SaveFilePart(
-                    file_id=input_file.id, file_part=part_num, bytes=chunk,
+                    file_id=input_file.id,
+                    file_part=part_num,
+                    bytes=chunk,
                 )
             await client.invoke(rpc)
         except Exception as e:
-            LOGGER.error(f"HypertgUL reupload part={part_num} fail: {type(e).__name__}: {e}")
+            LOGGER.error(
+                f"HypertgUL reupload part={part_num} fail: {type(e).__name__}: {e}"
+            )
         finally:
             fp.close()
 
     async def upload(
-        self, target_client, target_chat_id, file_path, dump_chat_id,
-        media_type, attributes, thumb_path=None, caption="", reply_to_message_id=None,
+        self,
+        target_client,
+        target_chat_id,
+        file_path,
+        dump_chat_id,
+        media_type,
+        attributes,
+        thumb_path=None,
+        caption="",
+        reply_to_message_id=None,
     ):
         self._cancel.clear()
         self._obj._processed_bytes = 0
@@ -343,18 +386,23 @@ class HypertgUpload(HypertgTransfer):
             thumb_file = await self._upload_thumb(target_client, thumb_path)
 
         mime_type = self._mime(file_path)
-        input_media = self._build_media(input_file, mime_type, media_type, attributes, thumb_file)
+        input_media = self._build_media(
+            input_file, mime_type, media_type, attributes, thumb_file
+        )
 
         peer = await target_client.resolve_peer(target_chat_id)
 
-        parsed = await utils.parse_text_entities(target_client, caption or "", None, None)
+        parsed = await utils.parse_text_entities(
+            target_client, caption or "", None, None
+        )
 
         rpc = raw.functions.messages.SendMedia(
             peer=peer,
             media=input_media,
             random_id=target_client.rnd_id(),
             reply_to=raw.types.InputReplyToMessage(reply_to_msg_id=reply_to_message_id)
-            if reply_to_message_id else None,
+            if reply_to_message_id
+            else None,
             **parsed,
             silent=True,
         )
@@ -376,7 +424,9 @@ class HypertgUpload(HypertgTransfer):
                 await self._reupload_part(target_client, file_path, input_file, part)
                 send_retries += 1
                 if send_retries >= 100:
-                    raise RuntimeError(f"SendMedia exhausted after fixing {missing_fixed} missing parts")
+                    raise RuntimeError(
+                        f"SendMedia exhausted after fixing {missing_fixed} missing parts"
+                    )
             except (FloodWait, FloodPremiumWait) as e:
                 val = e.value if hasattr(e, "value") else 5
                 send_retries += 1
@@ -397,14 +447,23 @@ class HypertgUpload(HypertgTransfer):
                     raise
         msg_id = None
         for u in r_updates.updates:
-            if isinstance(u, (raw.types.UpdateNewMessage, raw.types.UpdateNewChannelMessage, raw.types.UpdateNewScheduledMessage)):
+            if isinstance(
+                u,
+                (
+                    raw.types.UpdateNewMessage,
+                    raw.types.UpdateNewChannelMessage,
+                    raw.types.UpdateNewScheduledMessage,
+                ),
+            ):
                 msg_id = u.message.id
                 break
         if msg_id is None:
             LOGGER.error("HypertgUL no UpdateNewMessage in response")
             raise ValueError("No UpdateNewMessage in SendMedia response")
 
-        msg = await target_client.get_messages(chat_id=target_chat_id, message_ids=msg_id)
+        msg = await target_client.get_messages(
+            chat_id=target_chat_id, message_ids=msg_id
+        )
         return msg
 
     async def cancel(self):

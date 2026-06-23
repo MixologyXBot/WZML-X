@@ -39,15 +39,21 @@ class GDClean(TaskListener):
         obj = GoogleDriveClean(self)
         if gc_name:
             cat_name = gc_name.replace("_", " ")
-            default_id = user_data.get(self.user_id, {}).get("GDRIVE_ID") or Config.GDRIVE_ID
-            default_index = user_data.get(self.user_id, {}).get("INDEX_URL") or Config.INDEX_URL
+            default_id = (
+                user_data.get(self.user_id, {}).get("GDRIVE_ID") or Config.GDRIVE_ID
+            )
+            default_index = (
+                user_data.get(self.user_id, {}).get("INDEX_URL") or Config.INDEX_URL
+            )
             merged = {
                 "Default": {"drive_id": default_id, "index_link": default_index},
                 **fetch_drive_cat(self.user_id),
                 **categories_dict,
             }
             if cat_name not in merged:
-                return await send_message(self.message, f"Category '{cat_name}' not found")
+                return await send_message(
+                    self.message, f"Category '{cat_name}' not found"
+                )
             drive_id = merged[cat_name].get("drive_id")
             if not drive_id:
                 return await send_message(
@@ -87,7 +93,8 @@ async def confirm_drive_clean_cb(_, query):
     merged = {
         "Default": {
             "drive_id": user_data.get(user_id, {}).get("GDRIVE_ID") or Config.GDRIVE_ID,
-            "index_link": user_data.get(user_id, {}).get("INDEX_URL") or Config.INDEX_URL,
+            "index_link": user_data.get(user_id, {}).get("INDEX_URL")
+            or Config.INDEX_URL,
         },
         **fetch_drive_cat(user_id),
         **categories_dict,
@@ -98,7 +105,7 @@ async def confirm_drive_clean_cb(_, query):
     for name in merged:
         selected = cat_name == name
         buttons.data_button(
-            f'{"✓️" if selected else ""} {name}',
+            f"{'✓️' if selected else ''} {name}",
             f"gdccat {user_id} {msg_id} {name.replace(' ', '_')}",
         )
     buttons.data_button(

@@ -29,7 +29,9 @@ async def add_servers():
         sabnzbd_client.LOGGED_IN = True
         tasks = []
         servers_hosts = [x.get("host", "") for x in servers]
-        for server in (Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []):
+        for server in (
+            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        ):
             if isinstance(server, dict) and server.get("host") not in servers_hosts:
                 tasks.append(sabnzbd_client.add_server(server))
         if tasks:
@@ -47,7 +49,9 @@ async def add_servers():
 
 async def add_nzb(listener, path):
     if Config.DISABLE_NZB:
-        await listener.on_download_error("SABnzbd is currently disabled by the Bot Owner.")
+        await listener.on_download_error(
+            "SABnzbd is currently disabled by the Bot Owner."
+        )
         return
     if not sabnzbd_client.LOGGED_IN:
         try:

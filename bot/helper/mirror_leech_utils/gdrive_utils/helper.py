@@ -154,7 +154,12 @@ class GoogleDriveHelper:
         }
         return (
             self.service.permissions()
-            .create(fileId=file_id, body=permissions, supportsAllDrives=True, sendNotificationEmail=False)
+            .create(
+                fileId=file_id,
+                body=permissions,
+                supportsAllDrives=True,
+                sendNotificationEmail=False,
+            )
             .execute()
         )
 

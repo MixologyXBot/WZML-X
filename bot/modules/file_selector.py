@@ -67,7 +67,7 @@ async def select(_, message):
         await send_message(message, "This task is not for you!")
         return
     if not iscoroutinefunction(task.status):
-        await send_message(message, "The task have finshed the download stage!")
+        await send_message(message, "The task has finished the download stage!")
         return
     if await task.status() not in [
         MirrorStatus.STATUS_DOWNLOAD,
@@ -76,7 +76,7 @@ async def select(_, message):
     ]:
         await send_message(
             message,
-            "Task should be in download or pause (incase message deleted by wrong) or queued status (incase you have used torrent or nzb file)!",
+            "Task should be in download or pause (in case message was deleted by mistake) or queued status (in case you have used torrent or nzb file)!",
         )
         return
     if task.name().startswith("[METADATA]") or task.name().startswith("Trying"):

@@ -168,7 +168,9 @@ async def cancel_all_update(_, query):
         await edit_message(message, "Choose tasks to cancel!", button)
     elif data[1] == "ms":
         buttons = button_build.ButtonMaker()
-        buttons.data_button("Yes!", f"canall {data[2]} confirm {user_id}", style=ButtonStyle.SUCCESS)
+        buttons.data_button(
+            "Yes!", f"canall {data[2]} confirm {user_id}", style=ButtonStyle.SUCCESS
+        )
         buttons.data_button("Back", f"canall back confirm {user_id}")
         buttons.data_button(
             "Close", f"canall close confirm {user_id}", style=ButtonStyle.DANGER

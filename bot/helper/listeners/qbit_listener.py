@@ -46,7 +46,7 @@ async def _on_seed_finish(tor):
     ext_hash = tor.hash
     LOGGER.info(f"Cancelling Seed: {tor.name}")
     if task := await get_task_by_gid(ext_hash[:12]):
-        msg = f"Seeding stopped with Ratio: {round(tor.ratio, 3)} and Time: {get_readable_time(int(tor.seeding_time.total_seconds() or "0"))}"
+        msg = f"Seeding stopped with Ratio: {round(tor.ratio, 3)} and Time: {get_readable_time(int(tor.seeding_time.total_seconds() or '0'))}"
         await task.listener.on_upload_error(msg)
     await _remove_torrent(ext_hash, tor.tags[0])
 
@@ -180,7 +180,7 @@ async def _qb_listener():
                         )
                     elif state == "error":
                         await _on_download_error(
-                            "No enough space for this torrent on device", tor_info
+                            "Not enough space for this torrent on device", tor_info
                         )
                     elif (
                         int(tor_info.completion_on.timestamp()) != -1

@@ -1,5 +1,10 @@
 import os
-from asyncio import TimeoutError as AsyncTimeoutError, wait_for, wrap_future, sleep as asleep
+from asyncio import (
+    TimeoutError as AsyncTimeoutError,
+    wait_for,
+    wrap_future,
+    sleep as asleep,
+)
 from contextlib import suppress
 from mimetypes import guess_type
 from secrets import token_hex
@@ -10,7 +15,12 @@ from mega import MegaApi, MegaCancelToken
 from .... import LOGGER, task_dict, task_dict_lock
 from ...ext_utils.bot_utils import sync_to_async
 from ...ext_utils.files_utils import clean_download
-from ...listeners.mega_listener import AsyncMega, MegaAppListener, _mega_error_format, _MEGA_SDK_LOCK
+from ...listeners.mega_listener import (
+    AsyncMega,
+    MegaAppListener,
+    _mega_error_format,
+    _MEGA_SDK_LOCK,
+)
 from ...mirror_leech_utils.status_utils.mega_status import MegaDownloadStatus
 from ...telegram_helper.message_utils import update_status_message
 
@@ -23,7 +33,6 @@ def _make_cancel_token():
     except Exception as e:
         LOGGER.error(f"Mega: failed to create cancel token: {e}")
         return None
-
 
 
 def _find_node_by_name(api, parent_node, name):
@@ -58,10 +67,14 @@ async def _create_mega_folder(async_api, mega_listener, name, parent_node):
     return await async_api.create_folder(name, parent_node)
 
 
-async def _ensure_folder_structure(async_api, mega_listener, local_dir, parent_node, folder_name=None):
+async def _ensure_folder_structure(
+    async_api, mega_listener, local_dir, parent_node, folder_name=None
+):
     root_node = parent_node
     if folder_name:
-        root_node = await _create_mega_folder(async_api, mega_listener, folder_name, parent_node)
+        root_node = await _create_mega_folder(
+            async_api, mega_listener, folder_name, parent_node
+        )
         if not root_node:
             LOGGER.error(f"Failed to create root folder '{folder_name}' on Mega")
             return None, {}
@@ -85,7 +98,9 @@ async def _ensure_folder_structure(async_api, mega_listener, local_dir, parent_n
     return root_node, folder_map
 
 
-async def _upload_file(async_api, mega_listener, file_path, parent_node, custom_name, suppress_export=False):
+async def _upload_file(
+    async_api, mega_listener, file_path, parent_node, custom_name, suppress_export=False
+):
     for attempt in range(3):
         cancel_token = _make_cancel_token()
         mega_listener._cancel_token = cancel_token
@@ -107,7 +122,11 @@ async def _upload_file(async_api, mega_listener, file_path, parent_node, custom_
         if mega_listener.is_cancelled:
             return False, None
         if mega_listener.retryable_error and attempt < 2:
-            LOGGER.warning("MegaUpload: attempt %d retryable: %s", attempt + 1, mega_listener.retryable_error)
+            LOGGER.warning(
+                "MegaUpload: attempt %d retryable: %s",
+                attempt + 1,
+                mega_listener.retryable_error,
+            )
             continue
         if mega_listener.error:
             msg = _mega_error_format(mega_listener.error)
@@ -131,16 +150,12 @@ async def _upload_file(async_api, mega_listener, file_path, parent_node, custom_
 
 async def add_mega_upload(listener, path, mega_email, mega_password, gid):
     if not mega_email or not mega_password:
-        await listener.on_upload_error(
-            "Mega credentials not configured for this user."
-        )
+        await listener.on_upload_error("Mega credentials not configured for this user.")
         return
 
     mega_base = ""
     sdk_gid = token_hex(5)
-    mega_base = os.path.join(
-        os.path.dirname(path.rstrip("/")), ".mega_sdk", sdk_gid
-    )
+    mega_base = os.path.join(os.path.dirname(path.rstrip("/")), ".mega_sdk", sdk_gid)
     mega_dir = os.path.join(mega_base, "main")
     await makedirs(mega_dir, exist_ok=True)
 
@@ -160,7 +175,9 @@ async def add_mega_upload(listener, path, mega_email, mega_password, gid):
             listener.size = await aiopath.getsize(path)
 
         async with task_dict_lock:
-            task_dict[listener.mid] = MegaDownloadStatus(listener, mega_listener, gid, "up")
+            task_dict[listener.mid] = MegaDownloadStatus(
+                listener, mega_listener, gid, "up"
+            )
         await update_status_message(listener.message.chat.id)
 
         await async_api.login(mega_email, mega_password)
@@ -180,9 +197,7 @@ async def add_mega_upload(listener, path, mega_email, mega_password, gid):
 
         root_node = mega_listener.node
         if not root_node:
-            await listener.on_upload_error(
-                "Failed to get Mega root node."
-            )
+            await listener.on_upload_error("Failed to get Mega root node.")
             return
 
         total_files = 0
@@ -191,7 +206,9 @@ async def add_mega_upload(listener, path, mega_email, mega_password, gid):
 
         upload_link = None
         if await aiopath.isdir(path):
-            total_files = await sync_to_async(lambda: sum(len(files) for _, _, files in os.walk(path)))
+            total_files = await sync_to_async(
+                lambda: sum(len(files) for _, _, files in os.walk(path))
+            )
             if total_files == 0:
                 await listener.on_upload_error("No files to upload in folder")
                 return
@@ -201,7 +218,9 @@ async def add_mega_upload(listener, path, mega_email, mega_password, gid):
             )
             if not mega_root:
                 if not listener.is_cancelled and not mega_listener.is_cancelled:
-                    await listener.on_upload_error("Failed to create root folder on Mega")
+                    await listener.on_upload_error(
+                        "Failed to create root folder on Mega"
+                    )
                 return
 
             mega_listener._suppress_export = True
@@ -223,7 +242,12 @@ async def add_mega_upload(listener, path, mega_email, mega_password, gid):
                         return
                     file_path = os.path.join(root, f)
                     ok, _ = await _upload_file(
-                        async_api, mega_listener, file_path, parent, f, suppress_export=True
+                        async_api,
+                        mega_listener,
+                        file_path,
+                        parent,
+                        f,
+                        suppress_export=True,
                     )
                     if ok:
                         uploaded_files += 1
@@ -233,7 +257,11 @@ async def add_mega_upload(listener, path, mega_email, mega_password, gid):
                         return
 
             mime_type = "Folder"
-            if uploaded_files > 0 and not listener.is_cancelled and not mega_listener.is_cancelled:
+            if (
+                uploaded_files > 0
+                and not listener.is_cancelled
+                and not mega_listener.is_cancelled
+            ):
                 try:
                     mega_listener._suppress_export = False
                     upload_link = await async_api.export_node(mega_root)
@@ -252,23 +280,19 @@ async def add_mega_upload(listener, path, mega_email, mega_password, gid):
                 mime_type = guess_type(file_name)[0] or "application/octet-stream"
             else:
                 if not listener.is_cancelled and not mega_listener.is_cancelled:
-                    await listener.on_upload_error(
-                        f"MegaUpload failed for {file_name}"
-                    )
+                    await listener.on_upload_error(f"MegaUpload failed for {file_name}")
                 return
 
-        if uploaded_files > 0 and not listener.is_cancelled and not mega_listener.is_cancelled:
-            LOGGER.info(
-                f"MegaUpload: completed, {uploaded_files}/{total_files} files"
-            )
-            await listener.on_upload_complete(
-                upload_link, uploaded_files, 0, mime_type
-            )
+        if (
+            uploaded_files > 0
+            and not listener.is_cancelled
+            and not mega_listener.is_cancelled
+        ):
+            LOGGER.info(f"MegaUpload: completed, {uploaded_files}/{total_files} files")
+            await listener.on_upload_complete(upload_link, uploaded_files, 0, mime_type)
 
     except Exception as e:
-        LOGGER.error(
-            f"Unexpected error in add_mega_upload: {e}", exc_info=True
-        )
+        LOGGER.error(f"Unexpected error in add_mega_upload: {e}", exc_info=True)
         if not listener.is_cancelled:
             await listener.on_upload_error(f"Internal error: {e}")
     finally:

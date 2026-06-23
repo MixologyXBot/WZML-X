@@ -42,7 +42,9 @@ async def create_thumb(msg, _id=""):
     await makedirs(path, exist_ok=True)
     photo_dir = await msg.download()
     output = ospath.join(path, f"{_id}.jpg")
-    await sync_to_async(Image.open(photo_dir).convert("RGB").save, output, "JPEG", quality=95)
+    await sync_to_async(
+        Image.open(photo_dir).convert("RGB").save, output, "JPEG", quality=95
+    )
     await remove(photo_dir)
     return output
 
@@ -59,9 +61,7 @@ async def download_image_thumb(url):
         "audio/",
     )
     try:
-        async with AsyncClient(
-            follow_redirects=True, timeout=30
-        ) as client:
+        async with AsyncClient(follow_redirects=True, timeout=30) as client:
             try:
                 head_resp = await client.head(url)
                 content_type = head_resp.headers.get("content-type", "")
@@ -72,7 +72,7 @@ async def download_image_thumb(url):
                     return ""
 
             except Exception:
-                pass 
+                pass
 
             resp = await client.get(url)
             if resp.status_code != 200:
@@ -910,7 +910,7 @@ class FFMpeg:
                 break
             elif duration == lpd:
                 LOGGER.warning(
-                    f"This file has been splitted with default stream and audio, so you will only see one part with less size from orginal one because it doesn't have all streams and audios. This happens mostly with MKV videos. Path: {f_path}"
+                    f"This file has been split with default stream and audio, so you will only see one part with less size from original one because it doesn't have all streams and audios. This happens mostly with MKV videos. Path: {f_path}"
                 )
                 break
             elif lpd <= 3:

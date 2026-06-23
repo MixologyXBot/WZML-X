@@ -288,7 +288,11 @@ async def get_readable_message(sid, is_user, page_no=1, status="All", page_step=
             MirrorStatus.STATUS_PAUSED,
             MirrorStatus.STATUS_QUEUEDL,
         ]:
-            if task.listener.is_torrent or task.listener.is_qbit or task.listener.is_nzb:
+            if (
+                task.listener.is_torrent
+                or task.listener.is_qbit
+                or task.listener.is_nzb
+            ):
                 msg += f"\n┠ <b>Select</b> → /{BotCommands.SelectCommand[1]}_{task.gid()[:8]}"
 
         msg += f"\n<b>┖ Stop</b> → <i>/{BotCommands.CancelTaskCommand[1]}_{task.gid()[:8]}</i>\n\n"

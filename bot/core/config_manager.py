@@ -3,6 +3,7 @@ from importlib import import_module
 from os import getenv
 from wz_bin import bin_name
 
+
 class Config:
     AS_DOCUMENT = False
     AUTHORIZED_CHATS = ""

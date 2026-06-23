@@ -173,24 +173,31 @@ async def add_blacklist(_, message):
             i += 1
 
     if id_ is None and message.reply_to_message:
-        id_ = (message.reply_to_message.from_user or message.reply_to_message.sender_chat).id
+        id_ = (
+            message.reply_to_message.from_user or message.reply_to_message.sender_chat
+        ).id
 
     if id_ is None:
-        help_msg = f"""⌬ <b><u>BlackList Usage</u></b>
+        help_msg = """⌬ <b><u>BlackList Usage</u></b>
 │
-┠ <b>Permanent:</b> <code>/bl {{user_id}}</code>
-┠ <b>Temporary:</b> <code>/bl {{user_id}} -t 1d</code>
+┠ <b>Permanent:</b> <code>/bl {user_id}</code>
+┠ <b>Temporary:</b> <code>/bl {user_id} -t 1d</code>
 ┠ <b>Reply:</b> <code>/bl -t 2h</code> <i>(reply to user)</i>
 ┖ <b>Time Format:</b> <code>3d</code> | <code>12h</code> | <code>20m</code> <i>(any digit)</i>"""
         return await send_message(message, help_msg)
 
     if id_ in user_data and _get_blacklist_info(user_data[id_].get("BLACKLIST"))[0]:
-        return await send_message(message, f"<b>User Already BlackListed!</b> \u2192 <code>{id_}</code>")
+        return await send_message(
+            message, f"<b>User Already BlackListed!</b> \u2192 <code>{id_}</code>"
+        )
 
     if time_str:
         seconds = _parse_time(time_str)
         if seconds is None:
-            return await send_message(message, "<b>Invalid Time Format!</b> Use <code>1d</code>, <code>2h</code>, or <code>30m</code>.")
+            return await send_message(
+                message,
+                "<b>Invalid Time Format!</b> Use <code>1d</code>, <code>2h</code>, or <code>30m</code>.",
+            )
         bl_value = time() + seconds
         remaining = _format_remaining(seconds)
         update_user_ldata(id_, "BLACKLIST", bl_value)
@@ -224,24 +231,36 @@ async def remove_blacklist(_, message):
         except ValueError:
             pass
     if id_ is None and message.reply_to_message:
-        id_ = (message.reply_to_message.from_user or message.reply_to_message.sender_chat).id
+        id_ = (
+            message.reply_to_message.from_user or message.reply_to_message.sender_chat
+        ).id
 
     if id_ is None:
-        return await send_message(message, "Give ID or Reply To message of whom you want to remove from blacklist")
+        return await send_message(
+            message,
+            "Give ID or Reply To message of whom you want to remove from blacklist",
+        )
 
     bl_value = user_data.get(id_, {}).get("BLACKLIST")
     is_bl, remaining = _get_blacklist_info(bl_value)
     if not is_bl:
-        return await send_message(message, f"<b>User Already Freed</b> \u2192 <code>{id_}</code>")
+        return await send_message(
+            message, f"<b>User Already Freed</b> \u2192 <code>{id_}</code>"
+        )
 
     update_user_ldata(id_, "BLACKLIST", False)
     await database.update_user_data(id_)
-    await send_message(message, f"""⌬ <b><u>BlackList Removed</u></b>
+    await send_message(
+        message,
+        f"""⌬ <b><u>BlackList Removed</u></b>
 │
 ┟ <b>User</b> \u2192 <code>{id_}</code>
-┖ <b>Status</b> \u2192 <i>User Set Free!</i>""")
+┖ <b>Status</b> \u2192 <i>User Set Free!</i>""",
+    )
 
 
 @new_task
 async def black_listed(_, message):
-    await send_message(message, "<b>BlackListed Detected</b> \u2192 <i>Restricted from Bot</i>")
+    await send_message(
+        message, "<b>BlackListed Detected</b> \u2192 <i>Restricted from Bot</i>"
+    )

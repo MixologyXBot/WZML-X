@@ -102,7 +102,7 @@ user_settings_text = {
         "",
         """Send leech destination ID/USERNAME/PM. 
 * b:id/@username/pm (b: means leech by bot) (id or username of the chat or write pm means private message so bot will send the files in private to you) when you should use b:(leech by bot)? When your default settings is leech by user and you want to leech by bot for specific task.
-* u:id/@username(u: means leech by user) This incase OWNER added USER_STRING_SESSION.
+* u:id/@username(u: means leech by user) This in case OWNER added USER_STRING_SESSION.
 * h:id/@username(hybrid leech) h: to upload files by bot and user based on file size.
 * id/@username|topic_id(leech in specific chat and topic) add | without space and write topic id after chat id or username.
 ┖ <b>Time Left :</b> <code>60 sec</code>""",
@@ -155,7 +155,7 @@ user_settings_text = {
     "EXCLUDED_EXTENSIONS": (
         "",
         "",
-        "Send exluded extenions seperated by space without dot at beginning. </i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+        "Send excluded extensions separated by space without dot at beginning. </i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
     ),
     "NAME_SWAP": (
         "",
@@ -183,9 +183,9 @@ Notes:
 - Add `-del` to the list which you want from the bot to delete the original files after command run complete!
 - To execute one of those lists in bot for example, you must use -ff subtitle (list key) or -ff convert (list key)
 Here I will explain how to use mltb.* which is reference to files you want to work on.
-1. First cmd: the input is mltb.mkv so this cmd will work only on mkv videos and the output is mltb.mkv also so all outputs is mkv. -del will delete the original media after complete run of the cmd.
-2. Second cmd: the input is mltb.video so this cmd will work on all videos and the output is only mltb so the extenstion is same as input files.
-3. Third cmd: the input in mltb.m4a so this cmd will work only on m4a audios and the output is mltb.mp3 so the output extension is mp3.
+1. First cmd: the input is mltb.mkv so this cmd will work only on mkv videos and the output is mltb.mkv also so all outputs are mkv. -del will delete the original media after complete run of the cmd.
+2. Second cmd: the input is mltb.video so this cmd will work on all videos and the output is only mltb so the extension is the same as input files.
+3. Third cmd: the input is mltb.m4a so this cmd will work only on m4a audios and the output is mltb.mp3 so the output extension is mp3.
 4. Fourth cmd: the input is mltb.audio so this cmd will work on all audios and the output is mltb.mp3 so the output extension is mp3.
 
 <i>Send dict of FFMPEG_CMDS Options according to format.</i> \n┖ <b>Time Left :</b> <code>60 sec</code>
@@ -194,7 +194,7 @@ Here I will explain how to use mltb.* which is reference to files you want to wo
     "METADATA_CMDS": (
         "",
         "",
-        """<i>Send your Meta data. You can according to the format title="Join @WZML_X".</i>
+        """<i>Send your Meta data. You can set it according to the format title="Join @WZML_X".</i>
 <b>Full Documentation Guide</b> <a href="https://t.me/WZML_X/">Click Here</a>
 ┖ <b>Time Left :</b> <code>60 sec</code>
 """,
@@ -327,8 +327,8 @@ Here I will explain how to use mltb.* which is reference to files you want to wo
     ),
     "DRIVE_CAT": (
         "Dict",
-        "User-defined GDrive categories (name → drive_id). Format: {\"name\": \"drive_id|index_link\"}.",
-        "<i>Send dict of user drive categories.\nExample: {\"Movies\": \"0Bxxxxxxxx\", \"TV\": \"1Ayyyyyyy|https://index.tv\"}\nEach value: drive_id or drive_id|index_link</i> \n┖ <b>Time Left :</b> <code>60 sec</code>",
+        'User-defined GDrive categories (name → drive_id). Format: {"name": "drive_id|index_link"}.',
+        '<i>Send dict of user drive categories.\nExample: {"Movies": "0Bxxxxxxxx", "TV": "1Ayyyyyyy|https://index.tv"}\nEach value: drive_id or drive_id|index_link</i> \n┖ <b>Time Left :</b> <code>60 sec</code>',
     ),
 }
 
@@ -350,7 +350,7 @@ async def get_user_settings(from_user, stype="main"):
         buttons.data_button("Uphoster Settings", f"userset {user_id} uphoster")
         buttons.data_button("FF Media Settings", f"userset {user_id} ffset")
         buttons.data_button(
-            "Mics Settings", f"userset {user_id} advanced", position="l_body"
+            "Misc Settings", f"userset {user_id} advanced", position="l_body"
         )
 
         if user_dict and any(
@@ -542,9 +542,7 @@ async def get_user_settings(from_user, stype="main"):
     elif stype == "uphoster":
         uphoster_service = user_dict.get("UPHOSTER_SERVICE", "gofile")
         buttons.data_button(
-            "Change Destination ⇋",
-            f"userset {user_id} uphoster_destinations",
-            "header"
+            "Change Destination ⇋", f"userset {user_id} uphoster_destinations", "header"
         )
         buttons.data_button("Gofile Tools", f"userset {user_id} gofile")
         buttons.data_button("BuzzHeavier Tools", f"userset {user_id} buzzheavier")
@@ -561,7 +559,7 @@ async def get_user_settings(from_user, stype="main"):
         text = f"""⌬ <b>Uphoster Settings :</b>
 ┟ <b>Name</b> → {user_name}
 ┃
-┖ <b>Current Destination</b> → {', '.join(destinations)}"""
+┖ <b>Current Destination</b> → {", ".join(destinations)}"""
 
     elif stype == "pixeldrain":
         buttons.data_button("PixelDrain Key", f"userset {user_id} menu PIXELDRAIN_KEY")
@@ -750,7 +748,9 @@ async def get_user_settings(from_user, stype="main"):
                 "l_body",
             )
             sd_msg = "Disabled"
-        buttons.data_button("User Drive Categories", f"userset {user_id} menu DRIVE_CAT", "header")
+        buttons.data_button(
+            "User Drive Categories", f"userset {user_id} menu DRIVE_CAT", "header"
+        )
         buttons.data_button("Back", f"userset {user_id} back mirror", "footer")
         buttons.data_button(
             "Close", f"userset {user_id} close", "footer", style=ButtonStyle.DANGER
@@ -771,14 +771,20 @@ async def get_user_settings(from_user, stype="main"):
             dc_status = "Force Disabled (Global)"
         drive_cat_val = user_dict.get("DRIVE_CAT")
         lines = []
-        default_ilink_part = f" | <code>{escape(index)}</code>" if index != "None" else ""
-        lines.append(f"  <b>Default</b>: <code>{escape(gdrive_id)}</code>{default_ilink_part}")
+        default_ilink_part = (
+            f" | <code>{escape(index)}</code>" if index != "None" else ""
+        )
+        lines.append(
+            f"  <b>Default</b>: <code>{escape(gdrive_id)}</code>{default_ilink_part}"
+        )
         if drive_cat_val:
             for k, v in drive_cat_val.items():
                 did = v.get("drive_id", "")
                 ilink = v.get("index_link", "")
                 ilink_part = f" | <code>{escape(ilink)}</code>" if ilink else ""
-                lines.append(f"  <b>{escape(k)}</b>: <code>{escape(did)}</code>{ilink_part}")
+                lines.append(
+                    f"  <b>{escape(k)}</b>: <code>{escape(did)}</code>{ilink_part}"
+                )
         drive_cat_display = "\n   ".join(lines)
         btns = buttons.build_menu(2)
 
@@ -829,7 +835,7 @@ async def get_user_settings(from_user, stype="main"):
             buttons.data_button(
                 f"Drive Categories: {'ON' if dc_enabled else 'OFF'}",
                 f"userset {user_id} tog drive_cat_mode {'f' if dc_enabled else 't'}",
-                "header"
+                "header",
             )
         buttons.data_button("Back", f"userset {user_id} back", "footer")
         buttons.data_button(
@@ -848,10 +854,14 @@ async def get_user_settings(from_user, stype="main"):
         mega_password = user_dict.get("MEGA_PASSWORD", "")
         has_creds = bool(mega_email and mega_password)
         masked_pass = (
-            mega_password[:2] + "*" * (len(mega_password) - 4) + mega_password[-2:]
-            if len(mega_password) > 6
-            else "****"
-        ) if mega_password else ""
+            (
+                mega_password[:2] + "*" * (len(mega_password) - 4) + mega_password[-2:]
+                if len(mega_password) > 6
+                else "****"
+            )
+            if mega_password
+            else ""
+        )
 
         buttons.data_button("Mega Email", f"userset {user_id} menu MEGA_EMAIL")
         if mega_email:
@@ -1127,7 +1137,9 @@ async def add_one(_, message, option, rfunc):
                 parsed = {}
                 for k, v in value.items():
                     if k.strip().casefold() == "default":
-                        raise ValueError('"Default" is reserved and cannot be used as a category name')
+                        raise ValueError(
+                            '"Default" is reserved and cannot be used as a category name'
+                        )
                     parts = str(v).split("|", 1)
                     did = parts[0].strip()
                     ilink = parts[1].strip() if len(parts) > 1 else ""
@@ -1251,7 +1263,9 @@ async def set_option(_, message, option, rfunc):
                     parsed = {}
                     for k, v in value.items():
                         if k.strip().casefold() == "default":
-                            raise ValueError('"Default" is reserved and cannot be used as a category name')
+                            raise ValueError(
+                                '"Default" is reserved and cannot be used as a category name'
+                            )
                         parts = str(v).split("|", 1)
                         did = parts[0].strip()
                         ilink = parts[1].strip() if len(parts) > 1 else ""
@@ -1359,7 +1373,9 @@ async def get_menu(option, message, user_id):
                 did = v.get("drive_id", "")
                 ilink = v.get("index_link", "")
                 ilink_part = f" | <code>{escape(ilink)}</code>" if ilink else ""
-                lines.append(f"  <b>{escape(k)}</b>: <code>{escape(did)}</code>{ilink_part}")
+                lines.append(
+                    f"  <b>{escape(k)}</b>: <code>{escape(did)}</code>{ilink_part}"
+                )
             val = "<br>".join(lines)
         elif not val:
             val = "<b>Not Exists</b>"

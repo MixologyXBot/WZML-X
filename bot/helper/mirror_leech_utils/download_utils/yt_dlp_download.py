@@ -81,8 +81,11 @@ class YoutubeDLHelper:
             },
             "downloader_args": {
                 BinConfig.ARIA2_NAME: [
-                    "-x16", "-k1M", "-s16",
-                    "--max-tries=5", "--retry-wait=3",
+                    "-x16",
+                    "-k1M",
+                    "-s16",
+                    "--max-tries=5",
+                    "--retry-wait=3",
                 ],
             },
             "extractor_args": {

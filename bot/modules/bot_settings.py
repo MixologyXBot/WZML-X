@@ -257,12 +257,26 @@ DEFAULT_DESP = {
 }
 
 PROTECTED_VARS = {
-    "TELEGRAM_HASH", "TELEGRAM_API", "OWNER_ID", "BOT_TOKEN", "AUTHORIZED_CHATS", "DATABASE_URL",
-    "SUDO_USERS", "USER_SESSION_STRING", "TG_PROXY",
+    "TELEGRAM_HASH",
+    "TELEGRAM_API",
+    "OWNER_ID",
+    "BOT_TOKEN",
+    "AUTHORIZED_CHATS",
+    "DATABASE_URL",
+    "SUDO_USERS",
+    "USER_SESSION_STRING",
+    "TG_PROXY",
 }
 RESTART_VARS = {
-    "CMD_SUFFIX", "OWNER_ID", "USER_SESSION_STRING", "TELEGRAM_HASH", "TELEGRAM_API", "BOT_TOKEN",
-    "TG_PROXY", "AUTHORIZED_CHATS", "DATABASE_URL"
+    "CMD_SUFFIX",
+    "OWNER_ID",
+    "USER_SESSION_STRING",
+    "TELEGRAM_HASH",
+    "TELEGRAM_API",
+    "BOT_TOKEN",
+    "TG_PROXY",
+    "AUTHORIZED_CHATS",
+    "DATABASE_URL",
 }
 
 ONOFF_VARS = [
@@ -317,7 +331,9 @@ async def get_buttons(key=None, edit_type=None, edit_mode=False):
             msg = f"<i>Send a valid value for <code>{key}</code>.</i> Current value is <code>{nzb_options[key]}</code>\nIf the value is list then separate them by space or ,\nExample: <code>.exe,info</code> or <code>.exe .info</code>\n┖ <b>Time Left :</b> <code>60 sec</code>"
         elif edit_type.startswith("nzbsevar"):
             index = 0 if key == "newser" else int(edit_type.replace("nzbsevar", ""))
-            buttons.data_button("Back", f"botset nzbser{index}", style=ButtonStyle.PRIMARY)
+            buttons.data_button(
+                "Back", f"botset nzbser{index}", style=ButtonStyle.PRIMARY
+            )
             if key != "newser":
                 buttons.data_button("Empty", f"botset emptyserkey {index} {key}")
             buttons.data_button("Close", "botset close", style=ButtonStyle.DANGER)
@@ -339,7 +355,9 @@ async def get_buttons(key=None, edit_type=None, edit_mode=False):
             if key not in BOOL_VARS:
                 if not edit_mode:
                     buttons.data_button(
-                        "Edit Value", f"botset editvar {key} edit", style=ButtonStyle.PRIMARY
+                        "Edit Value",
+                        f"botset editvar {key} edit",
+                        style=ButtonStyle.PRIMARY,
                     )
                 else:
                     buttons.data_button("Stop Edit", f"botset editvar {key}")
@@ -349,9 +367,13 @@ async def get_buttons(key=None, edit_type=None, edit_mode=False):
                 buttons.data_button("False", f"botset boolvar {key} off")
             if key not in BOOL_VARS and key not in PROTECTED_VARS:
                 buttons.data_button("Reset", f"botset resetvar {key}")
-            buttons.data_button("Close", "botset close", position="footer", style=ButtonStyle.DANGER)
+            buttons.data_button(
+                "Close", "botset close", position="footer", style=ButtonStyle.DANGER
+            )
             if edit_mode and key in RESTART_VARS:
-                msg += "\n<b>Note:</b> Restart required for this edit to take effect!\n\n"
+                msg += (
+                    "\n<b>Note:</b> Restart required for this edit to take effect!\n\n"
+                )
             if edit_mode and key not in BOOL_VARS:
                 msg += "<i>Send a valid value for the above Var.</i>\n┖ <b>Time Left :</b> <code>60 sec</code>"
     elif key == "var":
@@ -377,7 +399,9 @@ async def get_buttons(key=None, edit_type=None, edit_mode=False):
             else:
                 buttons.data_button(label, f"botset toggleonoff {k} off")
         buttons.data_button("Back", "botset back", position="footer")
-        buttons.data_button("Close", "botset close", position="footer", style=ButtonStyle.DANGER)
+        buttons.data_button(
+            "Close", "botset close", position="footer", style=ButtonStyle.DANGER
+        )
         msg = "⌬ <b><u>Module Settings</u></b>"
     elif key == "private":
         if edit_mode:
@@ -463,7 +487,9 @@ async def get_buttons(key=None, edit_type=None, edit_mode=False):
             )
         msg = f"Sabnzbd Options | Page: {int(start / 10)} | State: {state}"
     elif key == "nzbserver":
-        servers = Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        servers = (
+            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        )
         if len(servers) > 0:
             for index, k in enumerate(servers[start : 10 + start]):
                 buttons.data_button(k["name"], f"botset nzbser{index}")
@@ -477,7 +503,9 @@ async def get_buttons(key=None, edit_type=None, edit_mode=False):
                 )
         msg = f"Usenet Servers | Page: {int(start / 10)} | State: {state}"
     elif key.startswith("nzbser"):
-        servers = Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        servers = (
+            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        )
         index = int(key.replace("nzbser", ""))
         if not servers or index >= len(servers):
             return await get_buttons("nzbserver")
@@ -660,7 +688,11 @@ async def toggle_bool_var(_, query, pre_message, key, value):
     Config.set(key, bool_value)
     await update_buttons(pre_message, key, "editvar", False)
     await database.update_config({key: bool_value})
-    if key in ("INC_TASK_NOTIFY", "INC_TASK_RESUME") and not bool_value and Config.DATABASE_URL:
+    if (
+        key in ("INC_TASK_NOTIFY", "INC_TASK_RESUME")
+        and not bool_value
+        and Config.DATABASE_URL
+    ):
         await database.trunc_table("tasks")
     elif key in ["QUEUE_ALL", "QUEUE_DOWNLOAD", "QUEUE_UPLOAD"]:
         await start_from_queued()
@@ -693,6 +725,7 @@ async def _handle_service_toggle(key, disabled):
         else:
             try:
                 from ..core.startup import load_configurations
+
                 await load_configurations()
             except Exception:
                 pass
@@ -847,21 +880,32 @@ async def edit_nzb_server(_, message, pre_message, key, index=0):
             await update_buttons(pre_message, "nzbserver")
             return
         res = await sabnzbd_client.add_server(value)
-        if not isinstance(res, dict) or not res.get("config", {}).get("servers", [{}])[0].get("host"):
+        if not isinstance(res, dict) or not res.get("config", {}).get("servers", [{}])[
+            0
+        ].get("host"):
             await send_message(message, "Invalid server!")
             await update_buttons(pre_message, "nzbserver")
             return
         Config.USENET_SERVERS.append(value)
         await update_buttons(pre_message, "nzbserver")
     else:
-        servers = Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
-        if not servers or index >= len(servers) or not isinstance(servers[index], dict) or key not in servers[index]:
+        servers = (
+            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        )
+        if (
+            not servers
+            or index >= len(servers)
+            or not isinstance(servers[index], dict)
+            or key not in servers[index]
+        ):
             await send_message(message, "Invalid server or key!")
             await update_buttons(pre_message, "nzbserver")
             return
         if value.isdigit():
             value = int(value)
-        if key in ("port", "connections") and (not isinstance(value, int) or value <= 0):
+        if key in ("port", "connections") and (
+            not isinstance(value, int) or value <= 0
+        ):
             await send_message(message, f"{key} must be a positive integer!")
             await update_buttons(pre_message, f"nzbser{index}")
             return
@@ -872,7 +916,9 @@ async def edit_nzb_server(_, message, pre_message, key, index=0):
         res = await sabnzbd_client.add_server(
             {"name": servers[index]["name"], key: value}
         )
-        if not isinstance(res, dict) or not res.get("config", {}).get("servers", [{}])[0].get(key):
+        if not isinstance(res, dict) or not res.get("config", {}).get("servers", [{}])[
+            0
+        ].get(key):
             await send_message(message, "Invalid value")
             return
         servers[index][key] = value
@@ -950,7 +996,9 @@ async def update_private_file(_, message, pre_message, key, new_file=False):
         if "@github.com" in Config.UPSTREAM_REPO:
             buttons = ButtonMaker()
             msg = "Push to UPSTREAM_REPO ?"
-            buttons.data_button("Yes!", f"botset push {file_name}", style=ButtonStyle.SUCCESS)
+            buttons.data_button(
+                "Yes!", f"botset push {file_name}", style=ButtonStyle.SUCCESS
+            )
             buttons.data_button("No", "botset close", style=ButtonStyle.DANGER)
             await send_message(message, msg, buttons.build_menu(2))
         else:
@@ -1059,13 +1107,13 @@ async def edit_bot_settings(client, query):
             )
             return
         await query.answer(
-            "Syncronization Started. JDownloader will get restarted. It takes up to 10 sec!",
+            "Synchronization Started. JDownloader will get restarted. It takes up to 10 sec!",
             show_alert=True,
         )
         await sync_jdownloader()
-    elif data[1] in ["var", "aria", "qbit", "nzb", "nzbserver", "setonoff"] or data[1].startswith(
-        "nzbser"
-    ):
+    elif data[1] in ["var", "aria", "qbit", "nzb", "nzbserver", "setonoff"] or data[
+        1
+    ].startswith("nzbser"):
         if data[1] == "nzbserver":
             globals()["start"] = 0
         await query.answer()
@@ -1073,7 +1121,13 @@ async def edit_bot_settings(client, query):
     elif data[1] == "resetvar":
         await query.answer()
         value = ""
-        if data[2] in ("IMAGES", "SEARCH_PLUGINS", "USENET_SERVERS", "YT_TAGS", "IMG_SOURCES"):
+        if data[2] in (
+            "IMAGES",
+            "SEARCH_PLUGINS",
+            "USENET_SERVERS",
+            "YT_TAGS",
+            "IMG_SOURCES",
+        ):
             value = []
         elif data[2] in DEFAULT_VALUES:
             value = DEFAULT_VALUES[data[2]]
@@ -1095,7 +1149,7 @@ async def edit_bot_settings(client, query):
         elif data[2] == "TORRENT_TIMEOUT":
             await TorrentManager.change_aria2_option("bt-stop-timeout", "0")
             await database.update_aria2("bt-stop-timeout", "0")
-        elif data[2] in ("BASE_URL","WEB_ACCESS_PASSWORD"):
+        elif data[2] in ("BASE_URL", "WEB_ACCESS_PASSWORD"):
             await (await create_subprocess_exec("pkill", "-9", "-f", "gunicorn")).wait()
         elif data[2] == "GDRIVE_ID":
             if drives_names and drives_names[0] == "Main":
@@ -1110,7 +1164,9 @@ async def edit_bot_settings(client, query):
         elif data[2] in ("JD_EMAIL", "JD_PASS"):
             await create_subprocess_exec("pkill", "-9", "-f", "java")
         elif data[2] == "USENET_SERVERS":
-            for s in (Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []):
+            for s in (
+                Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+            ):
                 if isinstance(s, dict):
                     await sabnzbd_client.delete_config("servers", s.get("name", ""))
         elif data[2] == "AUTHORIZED_CHATS":
@@ -1142,17 +1198,17 @@ async def edit_bot_settings(client, query):
     elif data[1] == "syncnzb":
         if not Config.USENET_SERVERS:
             return await query.answer(
-                "Syncronization Paused. No USENET_SERVERS is provided !"
+                "Synchronization Paused. No USENET_SERVERS is provided !"
             )
         await query.answer(
-            "Syncronization Started. It takes up to 2 sec!", show_alert=True
+            "Synchronization Started. It takes up to 2 sec!", show_alert=True
         )
         nzb_options.clear()
         await update_nzb_options()
         await database.update_nzb_config()
     elif data[1] == "syncqbit":
         await query.answer(
-            "Syncronization Started. It takes up to 2 sec!", show_alert=True
+            "Synchronization Started. It takes up to 2 sec!", show_alert=True
         )
         qbit_options.clear()
         await update_qb_options()
@@ -1177,13 +1233,13 @@ async def edit_bot_settings(client, query):
         await database.update_nzb_config()
     elif data[1] == "remser":
         index = int(data[2])
-        servers = Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        servers = (
+            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        )
         if index >= len(servers) or not isinstance(servers[index], dict):
             await query.answer("Invalid server!", show_alert=True)
             return
-        await sabnzbd_client.delete_config(
-            "servers", servers[index].get("name", "")
-        )
+        await sabnzbd_client.delete_config("servers", servers[index].get("name", ""))
         del Config.USENET_SERVERS[index]
         await update_buttons(message, "nzbserver")
         await database.update_config({"USENET_SERVERS": Config.USENET_SERVERS})
@@ -1280,13 +1336,18 @@ async def edit_bot_settings(client, query):
         await query.answer()
         await update_buttons(message, f"nzbser{data[2]}")
         index = int(data[2])
-        servers = Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        servers = (
+            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        )
         if index >= len(servers) or not isinstance(servers[index], dict):
             return
         res = await sabnzbd_client.add_server(
             {"name": servers[index].get("name", ""), data[3]: ""}
         )
-        if isinstance(res, dict) and res.get("config", {}).get("servers", [{}])[0].get(data[3]) is not None:
+        if (
+            isinstance(res, dict)
+            and res.get("config", {}).get("servers", [{}])[0].get(data[3]) is not None
+        ):
             Config.USENET_SERVERS[index][data[3]] = res["config"]["servers"][0][data[3]]
             await database.update_config({"USENET_SERVERS": Config.USENET_SERVERS})
     elif data[1].startswith("nzbsevar") and (state == "edit" or data[2] == "newser"):
@@ -1294,12 +1355,22 @@ async def edit_bot_settings(client, query):
         await query.answer()
         await update_buttons(message, data[2], data[1])
         pfunc = partial(edit_nzb_server, pre_message=message, key=data[2], index=index)
-        rfunc = partial(update_buttons, message, "nzbserver" if data[2] == "newser" else f"nzbser{index}")
+        rfunc = partial(
+            update_buttons,
+            message,
+            "nzbserver" if data[2] == "newser" else f"nzbser{index}",
+        )
         await event_handler(client, query, pfunc, rfunc)
     elif data[1].startswith("nzbsevar") and state == "view":
         index = int(data[1].replace("nzbsevar", ""))
-        servers = Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
-        if index >= len(servers) or not isinstance(servers[index], dict) or data[2] not in servers[index]:
+        servers = (
+            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
+        )
+        if (
+            index >= len(servers)
+            or not isinstance(servers[index], dict)
+            or data[2] not in servers[index]
+        ):
             await query.answer("Invalid server or key!", show_alert=True)
             return
         value = f"{servers[index][data[2]]}"
@@ -1331,13 +1402,21 @@ async def edit_bot_settings(client, query):
         safe_filename = shlex_quote(filename)
         safe_branch = shlex_quote(Config.UPSTREAM_BRANCH)
         if await aiopath.exists(filename):
-            await (await create_subprocess_shell(f"git add -f {safe_filename} \
+            await (
+                await create_subprocess_shell(
+                    f"git add -f {safe_filename} \
                     && git commit -sm botsettings -q \
-                    && git push origin {safe_branch} -qf")).wait()
+                    && git push origin {safe_branch} -qf"
+                )
+            ).wait()
         else:
-            await (await create_subprocess_shell(f"git rm -r --cached {safe_filename} \
+            await (
+                await create_subprocess_shell(
+                    f"git rm -r --cached {safe_filename} \
                     && git commit -sm botsettings -q \
-                    && git push origin {safe_branch} -qf")).wait()
+                    && git push origin {safe_branch} -qf"
+                )
+            ).wait()
         await delete_message(message.reply_to_message)
         await delete_message(message)
 
@@ -1382,6 +1461,7 @@ async def load_config():
         access_pwd = getenv("WEB_ACCESS_PASSWORD", "") or Config.WEB_ACCESS_PASSWORD
         if not access_pwd:
             from secrets import token_bytes
+
             access_pwd = token_bytes(32).hex()
             Config.WEB_ACCESS_PASSWORD = access_pwd
         env = f"WEB_ACCESS_PASSWORD={access_pwd} "

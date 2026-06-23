@@ -76,6 +76,7 @@ class HypertgDownload(HypertgTransfer):
         self._ref_cache = {}
         self._cdn_info = {}
         self._cdn_sessions = {}
+
     def _ref_get(self, idx):
         return self._ref_cache.get(idx)
 
@@ -94,7 +95,9 @@ class HypertgDownload(HypertgTransfer):
             try:
                 msg = await client.get_messages(self.dump_chat, self.message.id)
                 if msg is None:
-                    raise ValueError(f"msg {self.message.id} not found in {self.dump_chat}")
+                    raise ValueError(
+                        f"msg {self.message.id} not found in {self.dump_chat}"
+                    )
                 media = self._media_of(msg)
                 fid_str = media.file_id if hasattr(media, "file_id") else None
                 if not fid_str:
@@ -106,12 +109,23 @@ class HypertgDownload(HypertgTransfer):
                 last_err = e
                 if attempt < retries - 1:
                     await sleep(attempt + 1)
-        raise ValueError(f"Failed to get file ref with {client.me.username}: {last_err}")
+        raise ValueError(
+            f"Failed to get file ref with {client.me.username}: {last_err}"
+        )
 
     @staticmethod
     def _media_of(message):
-        for attr in ("audio", "document", "photo", "sticker", "animation",
-                     "video", "voice", "video_note", "new_chat_photo"):
+        for attr in (
+            "audio",
+            "document",
+            "photo",
+            "sticker",
+            "animation",
+            "video",
+            "voice",
+            "video_note",
+            "new_chat_photo",
+        ):
             if m := getattr(message, attr, None):
                 return m
         raise ValueError("No downloadable media")
@@ -120,16 +134,23 @@ class HypertgDownload(HypertgTransfer):
         try:
             r = await sess.invoke(
                 raw.functions.upload.GetFile(
-                    precise=True, cdn_supported=True,
-                    location=location, offset=off, limit=csz,
+                    precise=True,
+                    cdn_supported=True,
+                    location=location,
+                    offset=off,
+                    limit=csz,
                 ),
                 sleep_threshold=client.sleep_threshold,
             )
             if isinstance(r, raw.types.upload.File):
                 return r.bytes
             if isinstance(r, raw.types.upload.FileCdnRedirect):
-                return None, {"cdn_dc": r.dc_id, "file_token": r.file_token,
-                              "key": r.encryption_key, "iv": r.encryption_iv}
+                return None, {
+                    "cdn_dc": r.dc_id,
+                    "file_token": r.file_token,
+                    "key": r.encryption_key,
+                    "iv": r.encryption_iv,
+                }
             raise ValueError(f"Unexpected response type: {type(r)}")
         except FileMigrate as e:
             dc = e.value if hasattr(e, "value") else int(str(e).split()[-1])
@@ -169,15 +190,15 @@ class HypertgDownload(HypertgTransfer):
             try:
                 r = await sess.invoke(
                     raw.functions.upload.GetCdnFile(
-                        file_token=file_token, offset=off, limit=csz,
+                        file_token=file_token,
+                        offset=off,
+                        limit=csz,
                     ),
                     sleep_threshold=client.sleep_threshold,
                 )
                 if isinstance(r, raw.types.upload.CdnFile):
                     chunk = r.bytes
-                    iv_mod = bytearray(
-                        enc_iv[:-4] + (off // 16).to_bytes(4, "big")
-                    )
+                    iv_mod = bytearray(enc_iv[:-4] + (off // 16).to_bytes(4, "big"))
                     return ctr256_decrypt(chunk, enc_key, iv_mod)
                 if isinstance(r, raw.types.upload.CdnFileReuploadNeeded):
                     try:
@@ -197,11 +218,15 @@ class HypertgDownload(HypertgTransfer):
                 LOGGER.warning(f"HypertgDL CDN flood {val}s dc={cdn_dc}")
                 await sleep(val + 1)
             except FileTokenInvalid:
-                LOGGER.warning(f"HypertgDL CDN FileTokenInvalid dc={cdn_dc} — fallback to non-CDN")
+                LOGGER.warning(
+                    f"HypertgDL CDN FileTokenInvalid dc={cdn_dc} — fallback to non-CDN"
+                )
                 self._cdn_info.pop(idx, None)
                 return None
             except RequestTokenInvalid:
-                LOGGER.warning(f"HypertgDL CDN RequestTokenInvalid dc={cdn_dc} — fallback to non-CDN")
+                LOGGER.warning(
+                    f"HypertgDL CDN RequestTokenInvalid dc={cdn_dc} — fallback to non-CDN"
+                )
                 self._cdn_info.pop(idx, None)
                 return None
             except (ConnectionError, OSError, TimeoutError) as e:
@@ -237,7 +262,15 @@ class HypertgDownload(HypertgTransfer):
         bot_down = False
 
         async def _req(off, s):
-            nonlocal window, ok_count, flood_count, timeout_count, sess, loc, pipe_timeouts, bot_down
+            nonlocal \
+                window, \
+                ok_count, \
+                flood_count, \
+                timeout_count, \
+                sess, \
+                loc, \
+                pipe_timeouts, \
+                bot_down
             if bot_down:
                 return s, off, b""
             my_sess = sess
@@ -250,7 +283,9 @@ class HypertgDownload(HypertgTransfer):
                         chunk = await self._cdnpull(idx, cdn, off, csz)
                         if chunk is not None:
                             return s, off, chunk
-                    result = await self._do_req(my_sess, self.clients[idx], my_loc, off, csz, attempt)
+                    result = await self._do_req(
+                        my_sess, self.clients[idx], my_loc, off, csz, attempt
+                    )
                     if isinstance(result, tuple):
                         _, dc_or_ref = result
                         if isinstance(dc_or_ref, dict):
@@ -262,7 +297,9 @@ class HypertgDownload(HypertgTransfer):
                             await sleep(attempt + 1)
                             continue
                         if dc_or_ref == -1:
-                            fid_new = await self._fetch_ref(idx, self.clients[idx], force=True)
+                            fid_new = await self._fetch_ref(
+                                idx, self.clients[idx], force=True
+                            )
                             my_loc = self._location(fid_new)
                             await sleep(attempt + 1)
                             continue
@@ -308,7 +345,9 @@ class HypertgDownload(HypertgTransfer):
             while cur <= last_byte or inflight:
                 if bot_down:
                     while inflight:
-                        done_set, inflight = await wait(inflight, return_when=FIRST_COMPLETED)
+                        done_set, inflight = await wait(
+                            inflight, return_when=FIRST_COMPLETED
+                        )
                         for f in done_set:
                             try:
                                 s, roff, chunk = f.result()
@@ -316,13 +355,13 @@ class HypertgDownload(HypertgTransfer):
                                     failed_offsets.add(roff)
                                     continue
                                 if roff == first_off and roff + csz >= end:
-                                    chunk = chunk[first_trim:last_byte - roff + 1]
+                                    chunk = chunk[first_trim : last_byte - roff + 1]
                                     await queue.put((start, chunk))
                                 elif roff == first_off:
                                     chunk = chunk[first_trim:]
                                     await queue.put((start, chunk))
                                 elif roff + csz > end:
-                                    chunk = chunk[:end - roff]
+                                    chunk = chunk[: end - roff]
                                     await queue.put((roff, chunk))
                                 else:
                                     await queue.put((roff, chunk))
@@ -361,13 +400,13 @@ class HypertgDownload(HypertgTransfer):
                         window = min(window + 2, max_win)
                         ok_count = 0
                     if roff == first_off and roff + csz >= end:
-                        chunk = chunk[first_trim:last_byte - roff + 1]
+                        chunk = chunk[first_trim : last_byte - roff + 1]
                         await queue.put((start, chunk))
                     elif roff == first_off:
                         chunk = chunk[first_trim:]
                         await queue.put((start, chunk))
                     elif roff + csz > end:
-                        chunk = chunk[:end - roff]
+                        chunk = chunk[: end - roff]
                         await queue.put((roff, chunk))
                     else:
                         await queue.put((roff, chunk))
@@ -395,7 +434,9 @@ class HypertgDownload(HypertgTransfer):
         async def _producer():
             nonlocal failed_offsets
             try:
-                result = await self._pipeline_fetch(ci, self._location(fid), start, end, fid, q, csz)
+                result = await self._pipeline_fetch(
+                    ci, self._location(fid), start, end, fid, q, csz
+                )
                 if isinstance(result, set):
                     failed_offsets = result
             except CancelledError:
@@ -461,13 +502,19 @@ class HypertgDownload(HypertgTransfer):
         self._cancel.clear()
         self._obj._processed_bytes = 0
         await makedirs(self.directory, exist_ok=True)
-        final = os.path.abspath(sub("\\\\", "/", os.path.join(self.directory, self.file_name)))
+        final = os.path.abspath(
+            sub("\\\\", "/", os.path.join(self.directory, self.file_name))
+        )
 
         n_use = min(self.num_parts, self.num_clients)
         cidx = await _pick_clients(self.work_loads, self.clients, n_use)
 
         min_part = 1 * MB
-        n_parts = min(n_use, max(1, self.file_size // min_part)) if self.file_size >= min_part else 1
+        n_parts = (
+            min(n_use, max(1, self.file_size // min_part))
+            if self.file_size >= min_part
+            else 1
+        )
         psz = self.file_size // n_parts if n_parts > 0 else self.file_size
         ranges = [(i * psz, min((i + 1) * psz, self.file_size)) for i in range(n_parts)]
         assigns = [cidx[i % n_use] for i in range(n_parts)]
@@ -498,7 +545,16 @@ class HypertgDownload(HypertgTransfer):
             all_failed_offsets = set()
             for i, (s, e) in enumerate(ranges):
                 self._tasks.append(
-                    create_task(self._part(s, e, final, assigns[i], fid_map[assigns[i]], self.chunk_size))
+                    create_task(
+                        self._part(
+                            s,
+                            e,
+                            final,
+                            assigns[i],
+                            fid_map[assigns[i]],
+                            self.chunk_size,
+                        )
+                    )
                 )
 
             results = await gather(*self._tasks, return_exceptions=True)
@@ -515,9 +571,7 @@ class HypertgDownload(HypertgTransfer):
                             f"HypertgDL part {i} missing failed_offsets — "
                             f"retrying full range {s}-{e}"
                         )
-                        all_failed_offsets.update(
-                            range(s, e, self.chunk_size)
-                        )
+                        all_failed_offsets.update(range(s, e, self.chunk_size))
                 elif isinstance(r, set) and r:
                     all_failed_offsets.update(r)
                     bad_bots.add(assigns[i])
@@ -600,21 +654,21 @@ class HypertgDownload(HypertgTransfer):
                             still_failed |= set(bucket)
                             continue
                     retry_start = min(bucket)
-                    retry_end = min(
-                        max(bucket) + self.chunk_size, self.file_size
-                    )
+                    retry_end = min(max(bucket) + self.chunk_size, self.file_size)
                     task = create_task(
                         self._part(
-                            retry_start, retry_end, final, bot_idx,
-                            fid_map[bot_idx], self.chunk_size,
+                            retry_start,
+                            retry_end,
+                            final,
+                            bot_idx,
+                            fid_map[bot_idx],
+                            self.chunk_size,
                         )
                     )
                     bot_task_map.append((bot_idx, bucket, task))
 
                 if not bot_task_map:
-                    LOGGER.error(
-                        "HypertgDL retry: no bots available for retry"
-                    )
+                    LOGGER.error("HypertgDL retry: no bots available for retry")
                     break
 
                 retry_results = await gather(
@@ -640,7 +694,11 @@ class HypertgDownload(HypertgTransfer):
 
             if all_failed_offsets:
                 n_bad = len(bad_bots)
-                bad_detail = f" ({n_bad} bot{'s' if n_bad != 1 else ''} exhausted)" if n_bad else ""
+                bad_detail = (
+                    f" ({n_bad} bot{'s' if n_bad != 1 else ''} exhausted)"
+                    if n_bad
+                    else ""
+                )
                 LOGGER.error(
                     f"HypertgDL {len(all_failed_offsets)} offsets still failed "
                     f"after {max_retries} retry rounds — file may be incomplete"
@@ -691,7 +749,9 @@ class HypertgDownload(HypertgTransfer):
                         disable_notification=True,
                     )
                 except Exception as e:
-                    LOGGER.warning(f"HypertgDL copy fail: {e} (from={message.chat.id} to={dump_chat})")
+                    LOGGER.warning(
+                        f"HypertgDL copy fail: {e} (from={message.chat.id} to={dump_chat})"
+                    )
                     raise RuntimeError(f"Cannot copy to dump chat: {e}") from e
             self.dump_chat = dump_chat or message.chat.id
             self.message = self.message or message
@@ -706,7 +766,9 @@ class HypertgDownload(HypertgTransfer):
             self.directory, self.file_name = os.path.split(file_name)
             self.file_name = self.file_name or mname or ""
             if not os.path.isabs(self.file_name):
-                self.directory = Path(argv[0]).parent / (self.directory or self.download_dir)
+                self.directory = Path(argv[0]).parent / (
+                    self.directory or self.download_dir
+                )
             if not self.file_name:
                 ext = self._ext(ftype, mime)
                 self.file_name = (

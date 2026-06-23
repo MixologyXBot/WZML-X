@@ -102,6 +102,7 @@ nzb_listener_lock = Lock()
 jd_listener_lock = Lock()
 same_directory_lock = Lock()
 
+
 def _sabnzbd_key():
     from bot.helper.ext_utils.bot_utils import derive_service_password
 
@@ -113,8 +114,9 @@ def _sabnzbd_key():
 
 def _update_sabnzbd_ini(api_key):
     from re import compile as _re, MULTILINE
+
     pat_key = _re(r"^api_key\s*=.*$", MULTILINE)
-    pat_pwd = _re(r'^password\s*=.*$', MULTILINE)
+    pat_pwd = _re(r"^password\s*=.*$", MULTILINE)
     try:
         with open("configs/sabnzbd/SABnzbd.ini", "r+") as f:
             content = f.read()
@@ -135,6 +137,7 @@ def _update_sabnzbd_ini(api_key):
 
 if not Config.WEB_ACCESS_PASSWORD:
     from secrets import token_hex
+
     Config.WEB_ACCESS_PASSWORD = token_hex(32)
 
 _sabnzbd_api_key = _sabnzbd_key()

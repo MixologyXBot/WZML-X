@@ -9,7 +9,6 @@ from pyrogram.handlers import CallbackQueryHandler
 from tenacity import RetryError
 from time import time
 
-from ....core.config_manager import Config
 from ...ext_utils.bot_utils import new_task, sync_to_async
 from ...ext_utils.status_utils import get_readable_file_size, get_readable_time
 from ...mirror_leech_utils.gdrive_utils.delete import GoogleDriveDelete
@@ -93,9 +92,7 @@ async def drive_clean_cb(_, query, obj):
         name = item["name"]
         size = get_readable_file_size(float(item.get("size", 0)))
         mime = item.get("mimeType", "Unknown")
-        await query.answer(
-            f"Name: {name}\nSize: {size}\nType: {mime}", show_alert=True
-        )
+        await query.answer(f"Name: {name}\nSize: {size}\nType: {mime}", show_alert=True)
     elif action == "del":
         index = int(data[2])
         item = obj.items_list[index]
@@ -193,9 +190,7 @@ class GoogleDriveClean(GoogleDriveHelper):
             else:
                 name = f"[{get_readable_file_size(float(item['size']))}] {item['name']}"
                 buttons.data_button(f"📄 {name}", f"gdc info {orig_index}")
-            buttons.data_button(
-                "🗑️", f"gdc del {orig_index}", style=ButtonStyle.DANGER
-            )
+            buttons.data_button("🗑️", f"gdc del {orig_index}", style=ButtonStyle.DANGER)
         if items_no > LIST_LIMIT:
             for i in [1, 2, 4, 6, 10]:
                 buttons.data_button(i, f"gdc ps {i}", position="header")

@@ -160,9 +160,7 @@ class DbManager:
                 }
             }
         ]
-        await self.db.users[_part()].update_one(
-            {"_id": user_id}, pipeline, upsert=True
-        )
+        await self.db.users[_part()].update_one({"_id": user_id}, pipeline, upsert=True)
 
     async def update_user_doc(self, user_id, key, path=""):
         if self._return:

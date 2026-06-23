@@ -39,6 +39,7 @@ def wrap_with_retry(obj, max_retries=3):
 
 async def _connect_aria2(retries=5, delay=2):
     from aioaria2.exceptions import Aria2rpcException
+
     for i in range(retries):
         try:
             return await Aria2WebsocketClient.new("http://localhost:6800/jsonrpc")

@@ -33,7 +33,11 @@ class TelegramDownloadHelper:
         self._listener = listener
         self._id = ""
         self.session = ""
-        self._hyper_dl = Config.USE_HYPER and len(TgClient.helper_bots) != 0 and Config.LEECH_DUMP_CHAT
+        self._hyper_dl = (
+            Config.USE_HYPER
+            and len(TgClient.helper_bots) != 0
+            and Config.LEECH_DUMP_CHAT
+        )
         self._hyper_dl_instance = None
 
     @property
@@ -146,7 +150,10 @@ class TelegramDownloadHelper:
         if not self.session:
             if self._hyper_dl:
                 self.session = "hbots"
-            elif self._listener.transmission_mode in ("user", "both") and self._listener.is_super_chat:
+            elif (
+                self._listener.transmission_mode in ("user", "both")
+                and self._listener.is_super_chat
+            ):
                 self.session = "user"
                 try:
                     message = await TgClient.user.get_messages(

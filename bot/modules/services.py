@@ -101,7 +101,7 @@ async def start(_, message):
     else:
         await send_message(
             message,
-            "<i>Bot can mirror/leech from links|tgfiles|torrents|nzb|rclone-cloud to any rclone cloud, Google Drive or to telegram.\n\n⚠️ You Are not authorized user! Deploy your own WZML-X bot</i>",
+            "<i>Bot can mirror/leech from links|tgfiles|torrents|nzb|rclone-cloud to any rclone cloud, Google Drive or to telegram.\n\n⚠️ You are not an authorized user! Deploy your own WZML-X bot</i>",
             reply_markup,
             photo="IMAGES",
         )
@@ -128,11 +128,7 @@ async def start_cb(_, query):
     kb = query.message.reply_markup.inline_keyboard[1:]
     kb.insert(
         0,
-        [
-            InlineKeyboardButton(
-                "✅️ Activated ✅", callback_data="start pass activated"
-            )
-        ],
+        [InlineKeyboardButton("✅️ Activated ✅", callback_data="start pass activated")],
     )
     await edit_reply_markup(query.message, InlineKeyboardMarkup(kb))
 

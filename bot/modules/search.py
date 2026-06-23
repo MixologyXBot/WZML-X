@@ -226,7 +226,9 @@ async def plugin_buttons(user_id):
 @new_task
 async def torrent_search(_, message):
     if Config.DISABLE_SEARCH:
-        await send_message(message, "Torrent search is currently disabled by the Bot Owner.")
+        await send_message(
+            message, "Torrent search is currently disabled by the Bot Owner."
+        )
         return
     user_id = message.from_user.id
     buttons = ButtonMaker()

@@ -24,7 +24,15 @@ try:
 except ImportError:
     FloodPremiumWait = FloodWait
 
-from ... import LOGGER, bot_cache, categories_dict, intervals, status_dict, task_dict_lock, user_data
+from ... import (
+    LOGGER,
+    bot_cache,
+    categories_dict,
+    intervals,
+    status_dict,
+    task_dict_lock,
+    user_data,
+)
 from ...core.config_manager import Config
 from ...core.tg_client import TgClient
 from ..ext_utils.bot_utils import SetInterval, download_image_url, fetch_drive_cat
@@ -139,7 +147,7 @@ async def send_message(message, text, buttons=None, block=True, photo=None, **kw
     except (MessageEmpty, EntityBoundsInvalid):
         return await send_message(message, text, parse_mode=ParseMode.DISABLED)
     except PeerIdInvalid:
-        LOGGER.warning(f"PeerIdInvalid {type(message)}") # My Debug Style
+        LOGGER.warning(f"PeerIdInvalid {type(message)}")  # My Debug Style
         if isinstance(message, (int, str)):
             return await send_message(int(message), text, buttons, block, photo)
     except ConnectionError:
@@ -431,7 +439,9 @@ async def send_status_message(msg, user_id=0):
                     del intervals["status"][sid]
                 return
             old_message = status_dict[sid]["message"]
-            message = await send_message(msg, text, buttons, block=False, photo="IMAGES")
+            message = await send_message(
+                msg, text, buttons, block=False, photo="IMAGES"
+            )
             if isinstance(message, str):
                 LOGGER.error(
                     f"Status with id: {sid} haven't been sent. Error: {message}"
@@ -444,7 +454,9 @@ async def send_status_message(msg, user_id=0):
             text, buttons = await get_readable_message(sid, is_user)
             if text is None:
                 return
-            message = await send_message(msg, text, buttons, block=False, photo="IMAGES")
+            message = await send_message(
+                msg, text, buttons, block=False, photo="IMAGES"
+            )
             if isinstance(message, str):
                 LOGGER.error(
                     f"Status with id: {sid} haven't been sent. Error: {message}"
@@ -482,14 +494,17 @@ async def open_category_btns(message):
         if i == 0:
             cat_name = name
         buttons.data_button(
-            f'{"✓️" if i == 0 else ""} {name}',
+            f"{'✓️' if i == 0 else ''} {name}",
             f"scat {user_id} {msg_id} {name.replace(' ', '_')}",
         )
     buttons.data_button(
         "Cancel", f"scat {user_id} {msg_id} scancel", "footer", style=ButtonStyle.DANGER
     )
     buttons.data_button(
-        "Done (60)", f"scat {user_id} {msg_id} sdone", "footer", style=ButtonStyle.SUCCESS
+        "Done (60)",
+        f"scat {user_id} {msg_id} sdone",
+        "footer",
+        style=ButtonStyle.SUCCESS,
     )
     prompt = await send_message(
         message,
@@ -530,7 +545,7 @@ async def open_drive_clean(message):
         if i == 0:
             first_cat = name
         buttons.data_button(
-            f'{"✓️" if i == 0 else ""} {name}',
+            f"{'✓️' if i == 0 else ''} {name}",
             f"gdccat {user_id} {msg_id} {name.replace(' ', '_')}",
         )
     buttons.data_button(

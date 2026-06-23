@@ -138,7 +138,7 @@ async def confirm_category(client, query):
     buttons = ButtonMaker()
     for _name in merged_dict:
         buttons.data_button(
-            f'{"✓️" if cat_name == _name else ""} {_name}',
+            f"{'✓️' if cat_name == _name else ''} {_name}",
             f"scat {user_id} {msg_id} {_name.replace(' ', '_')}",
         )
     buttons.data_button(
@@ -157,5 +157,3 @@ async def confirm_category(client, query):
         f"<b>Timeout:</b> 60 sec",
         buttons.build_menu(3),
     )
-
-

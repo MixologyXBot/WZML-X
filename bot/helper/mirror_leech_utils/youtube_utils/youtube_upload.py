@@ -140,7 +140,6 @@ class YouTubeUpload(YouTubeHelper):
                 if video_url:
                     LOGGER.info(f"Uploaded To YouTube: {self.name} - {video_url}")
             else:
-
                 raise ValueError(f"Invalid path type for upload: {self.path}")
 
         except Exception as err:
@@ -162,7 +161,6 @@ class YouTubeUpload(YouTubeHelper):
             return
 
         if self._is_errored and self.is_folder_upload:
-
             pass
 
         if self.is_folder_upload:
@@ -178,7 +176,6 @@ class YouTubeUpload(YouTubeHelper):
                 and playlist_url
                 and not any(ospath.exists(v_path) for v_path in self.video_files)
             ):
-
                 pass
 
             async_to_sync(
@@ -283,7 +280,6 @@ class YouTubeUpload(YouTubeHelper):
                     LOGGER.info(f"Uploading '{title}': {self.upload_progress}%")
 
             except HttpError as err:
-
                 if err.resp.status in [500, 502, 503, 504, 429] and retries < 5:
                     retries += 1
                     LOGGER.warning(

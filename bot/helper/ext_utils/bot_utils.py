@@ -96,9 +96,11 @@ def verify_pin(gid, pin, bot_id):
     expected = derive_pin(gid, bot_id)
     if not expected:
         return False
-    return hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest() == hmac_new(
-        _PIN_SALT, pin.encode(), sha256
-    ).hexdigest()
+    return (
+        hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest()
+        == hmac_new(_PIN_SALT, pin.encode(), sha256).hexdigest()
+    )
+
 
 COMMAND_USAGE = {}
 
@@ -275,7 +277,9 @@ def arg_parser(items, arg_base):
                 sub_list = []
                 for j in range(i + 1, total):
                     if items[j] in arg_base:
-                        if (part == "-c" and items[j] == "-c") or (part == "-gc" and items[j] == "-gc"):
+                        if (part == "-c" and items[j] == "-c") or (
+                            part == "-gc" and items[j] == "-gc"
+                        ):
                             sub_list.append(items[j])
                             continue
                         if part in bool_arg_set and not sub_list:
@@ -401,7 +405,9 @@ async def download_image_url(url):
     image_name = url.split("/")[-1].split("?")[0]
     des_dir = ospath.join(path, image_name)
     try:
-        async with AsyncClient(headers={"User-Agent": "Mozilla/5.0"}, follow_redirects=True) as client:
+        async with AsyncClient(
+            headers={"User-Agent": "Mozilla/5.0"}, follow_redirects=True
+        ) as client:
             resp = await client.get(url, timeout=15)
             if resp.status_code == 200:
                 async with aiopen(des_dir, "wb") as f:
@@ -415,7 +421,9 @@ async def download_image_url(url):
 
 async def _fetch_wallpaperflare(client, query, page, seen):
     base_url = "https://www.wallpaperflare.com/search"
-    img_pattern = re_compile(r'data-src="(https://c4\.wallpaperflare\.com/wallpaper[^"]+)"')
+    img_pattern = re_compile(
+        r'data-src="(https://c4\.wallpaperflare\.com/wallpaper[^"]+)"'
+    )
     url = f"{base_url}?wallpaper={query}&width=1280&height=720&page={page}"
     try:
         resp = await client.get(url, follow_redirects=True, timeout=15)
@@ -435,7 +443,11 @@ async def _fetch_peapix(client, country, seen):
             LOGGER.warning(f"Peapix fetch failed: status {resp.status_code}")
             return []
         data = resp.json()
-        return [item["fullUrl"] for item in data if "fullUrl" in item and item["fullUrl"] not in seen]
+        return [
+            item["fullUrl"]
+            for item in data
+            if "fullUrl" in item and item["fullUrl"] not in seen
+        ]
     except Exception as e:
         LOGGER.warning(f"Peapix fetch failed: {e}")
         return []
@@ -446,10 +458,16 @@ async def _fetch_wallhaven(client, query, page, seen):
     try:
         resp = await client.get(url, follow_redirects=True, timeout=15)
         if resp.status_code != 200:
-            LOGGER.warning(f"Wallhaven fetch failed [{query} p{page}]: status {resp.status_code}")
+            LOGGER.warning(
+                f"Wallhaven fetch failed [{query} p{page}]: status {resp.status_code}"
+            )
             return []
         data = resp.json()
-        return [item["path"] for item in data.get("data", []) if "path" in item and item["path"] not in seen]
+        return [
+            item["path"]
+            for item in data.get("data", [])
+            if "path" in item and item["path"] not in seen
+        ]
     except Exception as e:
         LOGGER.warning(f"Wallhaven fetch failed [{query} p{page}]: {e}")
         return []
@@ -460,7 +478,11 @@ async def search_images():
         return
 
     LOGGER.info("IMG_SEARCH: Starting background image fetch...")
-    sources = Config.IMG_SOURCES if isinstance(Config.IMG_SOURCES, list) else ["wallpaperflare"]
+    sources = (
+        Config.IMG_SOURCES
+        if isinstance(Config.IMG_SOURCES, list)
+        else ["wallpaperflare"]
+    )
     query_list = []
     if Config.IMG_SEARCH:
         query_list = [
@@ -515,7 +537,9 @@ async def search_images():
             Config.IMAGES = []
         Config.IMAGES.extend(new_images)
         Config.STATUS_LIMIT = 2
-        LOGGER.info(f"IMG_SEARCH: fetched {len(new_images)} new images (total: {len(Config.IMAGES)})")
+        LOGGER.info(
+            f"IMG_SEARCH: fetched {len(new_images)} new images (total: {len(Config.IMAGES)})"
+        )
         if Config.DATABASE_URL:
             await database.update_config(
                 {"IMAGES": Config.IMAGES, "STATUS_LIMIT": Config.STATUS_LIMIT}

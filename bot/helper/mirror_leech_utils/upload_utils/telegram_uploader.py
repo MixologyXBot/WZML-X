@@ -72,7 +72,13 @@ class TelegramUploader:
         self._log_msg = None
         self._user_session = self._listener.transmission_mode in ("user", "both")
         self._error = ""
-        self._hu = HypertgUpload(self) if Config.USE_HYPER and Config.LEECH_DUMP_CHAT and len(TgClient.helper_bots) != 0 else None
+        self._hu = (
+            HypertgUpload(self)
+            if Config.USE_HYPER
+            and Config.LEECH_DUMP_CHAT
+            and len(TgClient.helper_bots) != 0
+            else None
+        )
 
     async def _user_settings(self):
         settings_map = {
@@ -461,12 +467,27 @@ class TelegramUploader:
         )
         return
 
-    async def _hyperul_upload(self, cap_mono, file, thumb, key, f_path=None, duration=0, width=0, height=0, artist="", title=""):
+    async def _hyperul_upload(
+        self,
+        cap_mono,
+        file,
+        thumb,
+        key,
+        f_path=None,
+        duration=0,
+        width=0,
+        height=0,
+        artist="",
+        title="",
+    ):
         attr_base = [DocumentAttributeFilename(file_name=file)]
         if key == "videos":
             attrs = [
                 DocumentAttributeVideo(
-                    duration=duration or 0, w=width or 480, h=height or 320, supports_streaming=True
+                    duration=duration or 0,
+                    w=width or 480,
+                    h=height or 320,
+                    supports_streaming=True,
                 ),
                 *attr_base,
             ]
@@ -531,23 +552,43 @@ class TelegramUploader:
                 LOGGER.warning(str(f))
                 await sleep(f.value * 1.3)
                 return await self._hyperul_upload(
-                    cap_mono, file, thumb, key,
-                    f_path=f_path, duration=duration,
-                    width=width, height=height, artist=artist, title=title,
+                    cap_mono,
+                    file,
+                    thumb,
+                    key,
+                    f_path=f_path,
+                    duration=duration,
+                    width=width,
+                    height=height,
+                    artist=artist,
+                    title=title,
                 )
             except OSError as e:
                 LOGGER.warning(f"Transport error during upload, retrying: {e}")
                 await sleep(5)
                 return await self._hyperul_upload(
-                    cap_mono, file, thumb, key,
-                    f_path=f_path, duration=duration,
-                    width=width, height=height, artist=artist, title=title,
+                    cap_mono,
+                    file,
+                    thumb,
+                    key,
+                    f_path=f_path,
+                    duration=duration,
+                    width=width,
+                    height=height,
+                    artist=artist,
+                    title=title,
                 )
             except BadRequest:
                 if key != "documents":
-                    LOGGER.error(f"Retrying As Document. Path: {f_path or self._up_path}")
+                    LOGGER.error(
+                        f"Retrying As Document. Path: {f_path or self._up_path}"
+                    )
                     return await self._hyperul_upload(
-                        cap_mono, file, thumb, "documents", f_path=f_path,
+                        cap_mono,
+                        file,
+                        thumb,
+                        "documents",
+                        f_path=f_path,
                     )
                 raise
             return sent
@@ -612,7 +653,9 @@ class TelegramUploader:
                     return
                 if thumb == "none":
                     thumb = None
-                sent_msg = await self._hyperul_upload(cap_mono, file, thumb, key, f_path=o_path)
+                sent_msg = await self._hyperul_upload(
+                    cap_mono, file, thumb, key, f_path=o_path
+                )
             elif is_video:
                 key = "videos"
                 duration = (await get_media_info(o_path))[0]
@@ -634,7 +677,16 @@ class TelegramUploader:
                     return
                 if thumb == "none":
                     thumb = None
-                sent_msg = await self._hyperul_upload(cap_mono, file, thumb, key, f_path=o_path, duration=duration, width=width, height=height)
+                sent_msg = await self._hyperul_upload(
+                    cap_mono,
+                    file,
+                    thumb,
+                    key,
+                    f_path=o_path,
+                    duration=duration,
+                    width=width,
+                    height=height,
+                )
             elif is_audio:
                 key = "audios"
                 duration, artist, title = await get_media_info(o_path)
@@ -642,12 +694,23 @@ class TelegramUploader:
                     return
                 if thumb == "none":
                     thumb = None
-                sent_msg = await self._hyperul_upload(cap_mono, file, thumb, key, f_path=o_path, duration=duration, artist=artist, title=title)
+                sent_msg = await self._hyperul_upload(
+                    cap_mono,
+                    file,
+                    thumb,
+                    key,
+                    f_path=o_path,
+                    duration=duration,
+                    artist=artist,
+                    title=title,
+                )
             else:
                 key = "photos"
                 if self._listener.is_cancelled:
                     return
-                sent_msg = await self._hyperul_upload(cap_mono, file, thumb, key, f_path=o_path)
+                sent_msg = await self._hyperul_upload(
+                    cap_mono, file, thumb, key, f_path=o_path
+                )
 
             self._sent_msg = sent_msg
 
@@ -664,9 +727,7 @@ class TelegramUploader:
                             [sent_msg.chat.id, sent_msg.id]
                         )
                     else:
-                        self._media_dict[key][pname] = [
-                            [sent_msg.chat.id, sent_msg.id]
-                        ]
+                        self._media_dict[key][pname] = [[sent_msg.chat.id, sent_msg.id]]
                     msgs = self._media_dict[key][pname]
                     if len(msgs) == 10:
                         await self._send_media_group(pname, key, msgs)

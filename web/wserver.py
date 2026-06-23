@@ -64,7 +64,9 @@ def _load_config():
         cfg = import_module("config")
     except ModuleNotFoundError:
         cfg = None
-    bot_token = environ.get("BOT_TOKEN", "") or (getattr(cfg, "BOT_TOKEN", "") if cfg else "")
+    bot_token = environ.get("BOT_TOKEN", "") or (
+        getattr(cfg, "BOT_TOKEN", "") if cfg else ""
+    )
     access_pwd = environ.get("WEB_ACCESS_PASSWORD", "") or (
         getattr(cfg, "WEB_ACCESS_PASSWORD", "") if cfg else ""
     )
@@ -88,6 +90,7 @@ def _service_pwd(service):
     from hashlib import sha256
     from hmac import new as hmac_new
     from secrets import token_bytes
+
     global _cached_secret_bytes
     if not _ACCESS_PASSWORD:
         if _cached_secret_bytes is None:
@@ -107,6 +110,7 @@ def _service_pwd(service):
 def _derive_pin(gid):
     from hashlib import sha256
     from hmac import new as hmac_new
+
     sig = hmac_new(
         _PIN_SALT,
         f"{gid}|{_BOT_ID}".encode("utf-8"),
@@ -120,6 +124,7 @@ def _derive_pin(gid):
 
 def _pin_rate_limited(gid):
     from time import time
+
     now = time()
     cutoff = now - _PIN_RATE_WINDOW
     attempts = _pin_attempts.get(gid, [])
@@ -130,9 +135,7 @@ def _pin_rate_limited(gid):
         _pin_attempts.pop(gid, None)
     if len(_pin_attempts) > 10000:
         stale = [
-            g
-            for g, ts in _pin_attempts.items()
-            if not ts or (ts and ts[-1] < cutoff)
+            g for g, ts in _pin_attempts.items() if not ts or (ts and ts[-1] < cutoff)
         ]
         for g in stale:
             _pin_attempts.pop(g, None)
@@ -141,12 +144,14 @@ def _pin_rate_limited(gid):
 
 def _record_pin_attempt(gid):
     from time import time
+
     _pin_attempts.setdefault(gid, []).append(time())
 
 
 def _verify_pin(gid, pin):
     from hashlib import sha256
     from hmac import new as hmac_new
+
     if not gid or not pin:
         return False
     if not _SAFE_PIN.match(pin):
@@ -154,9 +159,10 @@ def _verify_pin(gid, pin):
     expected = _derive_pin(gid)
     if not expected:
         return False
-    return hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest() == hmac_new(
-        _PIN_SALT, pin.encode(), sha256
-    ).hexdigest()
+    return (
+        hmac_new(_PIN_SALT, expected.encode(), sha256).hexdigest()
+        == hmac_new(_PIN_SALT, pin.encode(), sha256).hexdigest()
+    )
 
 
 aria2 = None
@@ -434,14 +440,24 @@ async def proxy_fetch(
             data=body,
             allow_redirects=False,
         ) as upstream:
-            raw = [(k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in upstream.headers.items()
-                    if k.lower() not in ("content-length", "content-encoding")]
+            raw = [
+                (k.lower().encode("latin-1"), v.encode("latin-1"))
+                for k, v in upstream.headers.items()
+                if k.lower() not in ("content-length", "content-encoding")
+            ]
             if upstream.status in (301, 302, 303, 307, 308):
                 loc = upstream.headers.get("Location")
                 if loc:
                     new_loc = rewrite_location(loc, proxy_prefix)
-                    raw = [(k, new_loc.encode("latin-1") if k == b"location" else v) for k, v in raw]
-            body = await upstream.read() if upstream.status not in (301, 302, 303, 307, 308) else b""
+                    raw = [
+                        (k, new_loc.encode("latin-1") if k == b"location" else v)
+                        for k, v in raw
+                    ]
+            body = (
+                await upstream.read()
+                if upstream.status not in (301, 302, 303, 307, 308)
+                else b""
+            )
             response = Response(content=body, status_code=upstream.status)
             response.raw_headers = raw
             return response

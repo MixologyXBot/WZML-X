@@ -327,7 +327,7 @@ class Clone(TaskListener):
             if is_mega_folder_link(self.link):
                 await send_message(
                     self.message,
-                    "Mega folder clone is not supported. Only file links can be cloned."
+                    "Mega folder clone is not supported. Only file links can be cloned.",
                 )
                 return
 
@@ -335,8 +335,7 @@ class Clone(TaskListener):
             mega_password = self.user_dict.get("MEGA_PASSWORD") or ""
             if not mega_email or not mega_password:
                 await send_message(
-                    self.message,
-                    "Mega credentials not configured for this user."
+                    self.message, "Mega credentials not configured for this user."
                 )
                 return
 
@@ -347,9 +346,7 @@ class Clone(TaskListener):
             await self.on_download_start()
 
             gid = token_hex(5)
-            LOGGER.info(
-                f"Clone Started: Name: {self.name} - Source: {self.link}"
-            )
+            LOGGER.info(f"Clone Started: Name: {self.name} - Source: {self.link}")
 
             flink, files, folders = await add_mega_clone(
                 self, self.link, mega_email, mega_password, gid
@@ -357,9 +354,7 @@ class Clone(TaskListener):
             if not flink:
                 return
             mime_type = "Folder" if folders else "application/octet-stream"
-            await self.on_upload_complete(
-                flink, files, folders, mime_type, dir_id=None
-            )
+            await self.on_upload_complete(flink, files, folders, mime_type, dir_id=None)
             LOGGER.info(f"Cloning Done: {self.name}")
         else:
             await send_message(

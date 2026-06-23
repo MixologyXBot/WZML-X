@@ -93,15 +93,16 @@ class GoogleDriveUpload(GoogleDriveHelper):
                 return
             elif self._is_errored:
                 return
-            if (
-                Config.DRIVE_CATEGORY_SA
-                and self.listener.up_dest != Config.GDRIVE_ID
-            ):
-                target_id = dir_id if mime_type == "Folder" else self.get_id_from_url(link)
+            if Config.DRIVE_CATEGORY_SA and self.listener.up_dest != Config.GDRIVE_ID:
+                target_id = (
+                    dir_id if mime_type == "Folder" else self.get_id_from_url(link)
+                )
                 if target_id:
                     try:
                         self.add_permission_user(target_id, Config.DRIVE_CATEGORY_SA)
-                        LOGGER.info(f"Added DRIVE_CATEGORY_SA permission on {target_id}")
+                        LOGGER.info(
+                            f"Added DRIVE_CATEGORY_SA permission on {target_id}"
+                        )
                     except Exception as e:
                         LOGGER.error(f"Failed to add DRIVE_CATEGORY_SA permission: {e}")
             async_to_sync(

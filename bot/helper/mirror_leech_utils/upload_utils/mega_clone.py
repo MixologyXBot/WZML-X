@@ -7,15 +7,18 @@ from mega import MegaApi
 
 from .... import LOGGER, task_dict, task_dict_lock
 from ...telegram_helper.message_utils import update_status_message
-from ...listeners.mega_listener import AsyncMega, MegaAppListener, _mega_error_format, _MEGA_SDK_LOCK
+from ...listeners.mega_listener import (
+    AsyncMega,
+    MegaAppListener,
+    _mega_error_format,
+    _MEGA_SDK_LOCK,
+)
 from ...mirror_leech_utils.status_utils.mega_status import MegaDownloadStatus
 
 
 async def add_mega_clone(listener, link, mega_email, mega_password, gid):
     if not mega_email or not mega_password:
-        await listener.on_upload_error(
-            "Mega credentials not configured for this user."
-        )
+        await listener.on_upload_error("Mega credentials not configured for this user.")
         return None, 0, 0
 
     sdk_gid = token_hex(5)
@@ -37,7 +40,9 @@ async def add_mega_clone(listener, link, mega_email, mega_password, gid):
 
     try:
         async with task_dict_lock:
-            task_dict[listener.mid] = MegaDownloadStatus(listener, mega_listener, gid, "cl")
+            task_dict[listener.mid] = MegaDownloadStatus(
+                listener, mega_listener, gid, "cl"
+            )
         await update_status_message(listener.message.chat.id)
 
         await async_api.login(mega_email, mega_password)
@@ -57,9 +62,7 @@ async def add_mega_clone(listener, link, mega_email, mega_password, gid):
 
         root_node = mega_listener.node
         if not root_node:
-            await listener.on_upload_error(
-                "Failed to get Mega root node."
-            )
+            await listener.on_upload_error("Failed to get Mega root node.")
             return None, 0, 0
 
         result = await async_api.import_link(link, root_node, auto_export=True)

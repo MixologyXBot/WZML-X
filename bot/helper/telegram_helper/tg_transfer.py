@@ -68,6 +68,7 @@ def _apply_hyper_patches():
     except Exception as e:
         LOGGER.warning(f"Failed to apply Hyper DC port patch: {e}")
 
+
 MB = 1024 * 1024
 
 
@@ -103,13 +104,19 @@ class HypertgTransfer:
     async def start_session(s, mode=3):
         while True:
             s.connection = Connection(
-                s.dc_id, s.test_mode, s.client.ipv6,
-                s.client.proxy, s.is_media, mode=mode
+                s.dc_id,
+                s.test_mode,
+                s.client.ipv6,
+                s.client.proxy,
+                s.is_media,
+                mode=mode,
             )
             try:
                 await s.connection.connect()
                 s.network_task = s.client.loop.create_task(s.network_worker())
-                await s.send(raw.functions.Ping(ping_id=0), timeout=Session.START_TIMEOUT)
+                await s.send(
+                    raw.functions.Ping(ping_id=0), timeout=Session.START_TIMEOUT
+                )
                 if not s.is_cdn:
                     await s.send(
                         raw.functions.InvokeWithLayer(
@@ -123,9 +130,9 @@ class HypertgTransfer:
                                 lang_code=s.client.lang_code,
                                 lang_pack="",
                                 query=raw.functions.help.GetConfig(),
-                            )
+                            ),
                         ),
-                        timeout=Session.START_TIMEOUT
+                        timeout=Session.START_TIMEOUT,
                     )
                 s.ping_task = s.client.loop.create_task(s.ping_worker())
             except AuthKeyDuplicated as e:
