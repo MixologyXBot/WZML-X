@@ -4,7 +4,6 @@ from functools import partial
 from time import time
 
 from httpx import AsyncClient
-from aiofiles.os import path as aiopath
 from yt_dlp import YoutubeDL
 from pyrogram.filters import regex, user
 from pyrogram.handlers import CallbackQueryHandler
@@ -21,7 +20,10 @@ from ..helper.ext_utils.links_utils import is_url
 from ..helper.ext_utils.task_manager import pre_task_check
 from ..helper.ext_utils.status_utils import get_readable_file_size, get_readable_time
 from ..helper.listeners.task_listener import TaskListener
-from ..helper.mirror_leech_utils.download_utils.yt_dlp_download import YoutubeDLHelper
+from ..helper.mirror_leech_utils.download_utils.yt_dlp_download import (
+    YoutubeDLHelper,
+    get_cookie_file,
+)
 from ..helper.telegram_helper.button_build import ButtonMaker
 from ..helper.telegram_helper.message_utils import (
     auto_delete_message,
@@ -473,13 +475,7 @@ class YtDlp(TaskListener):
 
         self._set_mode_engine()
 
-        cookie_to_use = (
-            usr_cookie
-            if not self.user_dict.get("USE_DEFAULT_COOKIE", False)
-            and (usr_cookie := self.user_dict.get("USER_COOKIE_FILE", ""))
-            and await aiopath.exists(usr_cookie)
-            else "cookies.txt"
-        )
+        cookie_to_use = get_cookie_file(self.user_dict)
         LOGGER.info(
             f"Using cookies.txt file: {cookie_to_use} | User ID : {self.user_id}"
         )
