@@ -86,6 +86,7 @@ async def _nzb_listener():
                         if not nzb_jobs[nzo_id]["uploaded"]:
                             nzb_jobs[nzo_id]["uploaded"] = True
                             await _on_download_complete(nzo_id)
+                            nzb_jobs[nzo_id]["status"] = "Completed"
                     elif job["status"] == "Failed":
                         await _on_download_error(job["fail_message"], nzo_id)
                 for dl in downloads:

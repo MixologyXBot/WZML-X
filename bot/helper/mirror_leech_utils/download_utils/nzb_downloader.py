@@ -12,6 +12,7 @@ from .... import (
 )
 from ....core.config_manager import Config
 from ...ext_utils.bot_lock import sab_par2_lock
+from ...ext_utils.db_handler import database
 from ...ext_utils.task_manager import check_running_tasks
 from ...listeners.nzb_listener import on_download_start
 from ...ext_utils.bot_utils import bt_selection_buttons
@@ -28,23 +29,42 @@ async def add_servers():
     if res and (servers := res["servers"]):
         sabnzbd_client.LOGGED_IN = True
         tasks = []
-        servers_hosts = [x.get("host", "") for x in servers]
-        for server in (
-            Config.USENET_SERVERS if isinstance(Config.USENET_SERVERS, list) else []
-        ):
-            if isinstance(server, dict) and server.get("host") not in servers_hosts:
+        servers_hosts = [x["host"] for x in servers]
+        for server in list(Config.USENET_SERVERS):
+            if server["host"] not in servers_hosts:
                 tasks.append(sabnzbd_client.add_server(server))
+                Config.USENET_SERVERS.append(server)
+        if Config.DATABASE_URL:
+            tasks.append(
+                database.update_config({"USENET_SERVERS": Config.USENET_SERVERS})
+            )
         if tasks:
-            await gather(*tasks)
-    else:
-        if servers:
-            sabnzbd_client.LOGGED_IN = True
-        else:
             try:
-                await sabnzbd_client.check_login()
+                await gather(*tasks)
+            except LoginFailed as e:
+                raise e
+    elif not res and (
+        Config.USENET_SERVERS
+        and (
+            not Config.USENET_SERVERS[0]["host"]
+            or not Config.USENET_SERVERS[0]["username"]
+            or not Config.USENET_SERVERS[0]["password"]
+        )
+        or not Config.USENET_SERVERS
+    ):
+        sabnzbd_client.LOGGED_IN = False
+        raise NotLoggedIn("Set USENET_SERVERS in bsetting or config!")
+    else:
+        if tasks := [
+            sabnzbd_client.add_server(server) for server in Config.USENET_SERVERS
+        ]:
+            try:
+                await gather(*tasks)
                 sabnzbd_client.LOGGED_IN = True
-            except (NotLoggedIn, LoginFailed):
-                sabnzbd_client.LOGGED_IN = False
+            except LoginFailed as e:
+                if len(tasks) == 1:
+                    sabnzbd_client.LOGGED_IN = False
+                raise e
 
 
 async def add_nzb(listener, path):
