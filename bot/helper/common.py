@@ -167,15 +167,22 @@ class TaskConfig:
         self.mode = tuple()
 
     def _set_mode_engine(self):
-        self.source_url = (
-            self.link
-            if len(self.link) > 0 and self.link.startswith("http")
-            else (
-                f"https://t.me/share/url?url={self.link}"
-                if self.link
-                else self.message.link
+        if self.is_nzb and self.link and "/getnzb/api/" in self.link:
+            try:
+                nzb_id = self.link.split("/getnzb/api/")[1].split("?")[0]
+                self.source_url = f"NZB: {nzb_id}"
+            except Exception:
+                self.source_url = "NZB Link"
+        else:
+            self.source_url = (
+                self.link
+                if len(self.link) > 0 and self.link.startswith("http")
+                else (
+                    f"https://t.me/share/url?url={self.link}"
+                    if self.link
+                    else self.message.link
+                )
             )
-        )
 
         out_mode = f"#{'Leech' if self.is_leech else 'UphosterUpload' if self.is_uphoster else 'Clone' if self.is_clone else 'Mega' if self.up_dest in ('mega', 'mega:') else 'RClone' if self.up_dest.startswith('mrcc:') or is_rclone_path(self.up_dest) else 'GDrive' if self.up_dest.startswith(('mtp:', 'tp:', 'sa:')) or is_gdrive_id(self.up_dest) else 'UpHosters'}"
         out_mode += " (Zip)" if self.compress else " (Unzip)" if self.extract else ""
