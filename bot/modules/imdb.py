@@ -2,7 +2,7 @@ from contextlib import suppress
 from pyrogram.enums import ButtonStyle
 from re import IGNORECASE, findall, search
 
-from imdbinfo import search_title, get_movie, get_akas
+from imdbio import search_title, get_movie, get_akas
 from pycountry import countries as conn
 from pyrogram.errors import MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty
 
@@ -175,7 +175,7 @@ def get_poster(query, bulk=False, id=False, file=None):
 
     try:
         akas = get_akas(f"tt{movie.imdb_id}")
-        aka_list = [a.title for a in akas.get("akas", [])[:LIST_ITEMS]]
+        aka_list = [a.title for a in akas["akas"][:LIST_ITEMS]]
         aka_text = list_to_str(aka_list) or "N/A"
     except Exception:
         aka_text = list_to_str(getattr(movie, "title_akas", []) or []) or "N/A"
