@@ -5,11 +5,11 @@ from json import loads
 from lxml.etree import HTML
 from os import path as ospath
 from re import findall, match, search
-from requests import Session, post, get
-from requests.adapters import HTTPAdapter
+from niquests import Session, post, get
+from niquests.adapters import HTTPAdapter
 from time import sleep, time
 from urllib.parse import parse_qs, urlparse
-from urllib3.util.retry import Retry
+from niquests.packages.urllib3.util.retry import Retry
 from uuid import uuid4
 from base64 import b64decode, b64encode
 from curl_cffi import Session as CurlSession
@@ -909,7 +909,6 @@ def uploadee(url):
 
 
 def terabox(url):
-
     if "/file/" in url:
         return url
 

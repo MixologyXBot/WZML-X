@@ -25,7 +25,12 @@ from psutil import (
 from .. import LOGGER, bot_cache, bot_start_time, bot_loop
 from ..core.config_manager import Config, BinConfig
 from ..helper.ext_utils.bot_lock import get_system_resources_cached
-from ..helper.ext_utils.bot_utils import cmd_exec, compare_versions, new_task
+from ..helper.ext_utils.bot_utils import (
+    cmd_exec,
+    compare_versions,
+    git_info,
+    new_task,
+)
 from ..helper.ext_utils.status_utils import (
     get_progress_bar_string,
     get_readable_file_size,
@@ -56,7 +61,7 @@ commands = {
     ),
     "7z": (["7z", "i"], r"7-Zip ([\d.]+)"),
     "aiohttp": (["uv", "pip", "show", "aiohttp"], r"Version: ([\d.]+)"),
-    "pyrotgfork": (["uv", "pip", "show", "pyrotgfork"], r"Version: ([\d.]+)"),
+    "wzgram": (["uv", "pip", "show", "wzgram"], r"Version: ([\d.]+)"),
     "gapi": (["uv", "pip", "show", "google-api-python-client"], r"Version: ([\d.]+)"),
     "mega": (
         [
@@ -153,19 +158,10 @@ async def get_stats(event, key="home"):
 ┖ <b>Usable CPU(s) :</b> {len(Process().cpu_affinity())}
 """
     elif key == "strepo":
-        last_commit, changelog = "No Data", "N/A"
-        if await aiopath.exists(".git"):
-            last_commit = (
-                await cmd_exec(
-                    "git log -1 --pretty='%cd ( %cr )' --date=format-local:'%d/%m/%Y'",
-                    True,
-                )
-            )[0]
-            changelog = (
-                await cmd_exec(
-                    "git log -1 --pretty=format:'<code>%s</code> <b>By</b> %an'", True
-                )
-            )[0]
+        last_commit = git_info.commit_date() or "No Data"
+        changelog = git_info.commit_msg() or "N/A"
+        if git_info.commit_hash() != "unknown":
+            changelog += f" | <code>{git_info.commit_hash()}</code>"
         official_v = (
             await cmd_exec(
                 f"curl -o latestversion.py https://raw.githubusercontent.com/SilentDemonSD/WZML-X/{Config.UPSTREAM_BRANCH}/bot/version.py -s && python3 latestversion.py && rm latestversion.py",
@@ -194,7 +190,7 @@ async def get_stats(event, key="home"):
 ┠ <b>ffmpeg:</b> v{ver.get("ffmpeg", "N/A")}
 ┠ <b>7z:</b> v{ver.get("7z", "N/A")}
 ┠ <b>Aiohttp:</b> v{ver.get("aiohttp", "N/A")}
-┠ <b>PyroTgFork:</b> v{ver.get("pyrotgfork", "N/A")}
+┠ <b>WzGram:</b> v{ver.get("wzgram", "N/A")}
 ┠ <b>Google API:</b> v{ver.get("gapi", "N/A")}
 ┖ <b>MegaSDK:</b> v{ver.get("mega", "N/A")}
 """

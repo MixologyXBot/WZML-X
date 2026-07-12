@@ -107,7 +107,6 @@ IMDB_TEMPLATE = """<b>Title: </b> {title} [{year}]
 FORCE_SUB_IDS = ""
 MEDIA_STORE = True
 DELETE_LINKS = False
-CLEAN_LOG_MSG = False
 
 # Limiters
 BOT_MAX_TASKS = 0
@@ -115,6 +114,9 @@ USER_MAX_TASKS = 0
 USER_TIME_INTERVAL = 0
 VERIFY_TIMEOUT = 0
 LOGIN_PASS = ""
+
+# Crash Reporting
+ENABLE_TELEMETRY = True  # Send crash reports to remote worker
 
 # Bot Settings
 BOT_PM = False

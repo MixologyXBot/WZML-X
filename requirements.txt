@@ -14,7 +14,6 @@ feedparser
 google-api-python-client
 google-auth-oauthlib
 gunicorn
-httpx
 langcodes
 language-data
 jinja2
@@ -25,16 +24,13 @@ pillow
 psutil
 pycountry
 pymongo
-pyrotgfork
-pytgcrypto
+wzgram
 python-magic
 pytz
 qbittorrent-api
-requests
+niquests
 speedtest-cli
-telegraph
 tenacity
-urllib3
 uvicorn
 uvloop
 xattr

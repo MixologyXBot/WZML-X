@@ -27,8 +27,8 @@ class DevUploadsUpload(BaseUpload):
     _TOKEN_KEY = "DEVUPLOADS_KEY"
     _CONFIG_KEY = "DEVUPLOADS_KEY"
 
-    def __init__(self, listener, path):
-        super().__init__(listener, path)
+    def __init__(self, listener, path, folder_name=""):
+        super().__init__(listener, path, folder_name)
         self.server_api_url = "https://devuploads.com/api/upload/server"
         self._sess_id = None
         self._server_url = None

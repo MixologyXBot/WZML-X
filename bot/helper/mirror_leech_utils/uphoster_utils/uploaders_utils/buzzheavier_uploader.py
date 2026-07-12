@@ -25,8 +25,8 @@ class BuzzHeavierUpload(BaseUpload):
     _TOKEN_KEY = "BUZZHEAVIER_TOKEN"
     _CONFIG_KEY = "BUZZHEAVIER_API"
 
-    def __init__(self, listener, path):
-        super().__init__(listener, path)
+    def __init__(self, listener, path, folder_name=""):
+        super().__init__(listener, path, folder_name)
         self.api_url = "https://buzzheavier.com/api/"
         self.upload_url = "https://w.buzzheavier.com/"
         from bot import user_data

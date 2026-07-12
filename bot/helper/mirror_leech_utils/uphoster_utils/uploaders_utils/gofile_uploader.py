@@ -29,14 +29,19 @@ class GoFileUpload(BaseUpload):
     _TOKEN_KEY = "GOFILE_TOKEN"
     _CONFIG_KEY = "GOFILE_API"
 
-    def __init__(self, listener, path):
-        super().__init__(listener, path)
+    def __init__(self, listener, path, folder_name=""):
+        super().__init__(listener, path, folder_name)
         self.api_url = "https://api.gofile.io/"
         from bot import user_data
 
         user_dict = user_data.get(self.listener.user_id, {})
         self.folder_id = (
             user_dict.get("GOFILE_FOLDER_ID") or Config.GOFILE_FOLDER_ID or ""
+        )
+        self.auto_create = (
+            user_dict.get("GOFILE_AUTO_CREATE_FOLDER")
+            if "GOFILE_AUTO_CREATE_FOLDER" in user_dict
+            else Config.GOFILE_AUTO_CREATE_FOLDER
         )
 
     @staticmethod
@@ -127,15 +132,18 @@ class GoFileUpload(BaseUpload):
                         raise Exception(f"HTTP {resp.status}: {await resp.text()}")
         return None
 
-    async def create_folder(self, parentFolderId, folderName):
+    async def create_folder(self, parentFolderId, folderName=None):
         if self.token is None:
             raise Exception("GoFile API token not found!")
         headers = {"Authorization": f"Bearer {self.token}"}
+        body = {"parentFolderId": parentFolderId}
+        if folderName:
+            body["folderName"] = folderName
         async with (
             ClientSession() as session,
             session.post(
                 url=f"{self.api_url}contents/createfolder",
-                json={"parentFolderId": parentFolderId, "folderName": folderName},
+                json=body,
                 headers=headers,
             ) as resp,
         ):
@@ -192,14 +200,14 @@ class GoFileUpload(BaseUpload):
                     account_data = await self.__getAccount()
                     root_folder_id = account_data["rootFolder"]
                 folder_data = await self.create_folder(
-                    root_folder_id, ospath.basename(input_directory)
+                    root_folder_id, self.folder_name or ospath.basename(input_directory)
                 )
+                parent_folder_id = folder_data.get("id") or folder_data["folderId"]
                 await self.__setOptions(
-                    contentId=folder_data["folderId"],
+                    contentId=parent_folder_id,
                     option="public",
                     value="true",
                 )
-                parent_folder_id = folder_data["folderId"]
                 main_folder_code = folder_data["code"]
         else:
             main_folder_code = None
@@ -217,13 +225,16 @@ class GoFileUpload(BaseUpload):
                 curr_folder_data = await self.create_folder(
                     current_folder_id, folder_name
                 )
+                curr_folder_id = (
+                    curr_folder_data.get("id") or curr_folder_data["folderId"]
+                )
                 await self.__setOptions(
-                    contentId=curr_folder_data["folderId"],
+                    contentId=curr_folder_id,
                     option="public",
                     value="true",
                 )
-                folder_ids[rel_path] = curr_folder_data["folderId"]
-                current_folder_id = curr_folder_data["folderId"]
+                folder_ids[rel_path] = curr_folder_id
+                current_folder_id = curr_folder_id
                 self.total_folders += 1
             for file in files:
                 if self.listener.is_cancelled:
@@ -246,10 +257,28 @@ class GoFileUpload(BaseUpload):
             raise Exception(f"GoFile Account Error: {e}") from e
 
         if await aiopath.isfile(self._path):
-            folder_id = self.folder_id or account_data["rootFolder"]
+            folder_id = self.folder_id
+            folder_code = ""
+            if not folder_id and self.auto_create:
+                folder_data = await self.create_folder(
+                    account_data["rootFolder"], self.folder_name or None
+                )
+                folder_id = folder_data.get("id") or folder_data["folderId"]
+                await self.__setOptions(
+                    contentId=folder_id,
+                    option="public",
+                    value="true",
+                )
+                folder_code = folder_data.get("code", "")
+            else:
+                folder_id = folder_id or account_data["rootFolder"]
             file_result = await self.upload_file(path=self._path, folderId=folder_id)
             if file_result and file_result.get("downloadPage"):
-                link = file_result["downloadPage"]
+                link = (
+                    f"https://gofile.io/d/{folder_code}"
+                    if folder_code
+                    else file_result["downloadPage"]
+                )
                 mime_type = "File"
                 self.total_files = 1
             else:

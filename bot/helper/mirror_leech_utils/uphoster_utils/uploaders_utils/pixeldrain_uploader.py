@@ -24,8 +24,8 @@ class PixelDrainUpload(BaseUpload):
     _TOKEN_KEY = "PIXELDRAIN_KEY"
     _CONFIG_KEY = "PIXELDRAIN_KEY"
 
-    def __init__(self, listener, path):
-        super().__init__(listener, path)
+    def __init__(self, listener, path, folder_name=""):
+        super().__init__(listener, path, folder_name)
         self.api_url = "https://pixeldrain.com/api/"
 
     async def __resp_handler(self, response):

@@ -86,7 +86,7 @@ def main():
             phone_number=phone,
             app_version="@WZML_X User Session",
             device_model="@WZML_X Bot V3",
-            system_version="@WZML_X Pyro Server",
+            system_version="@WZML_X WzPyro Server",
         ) as user:
             # Step 3: Send session to Saved Messages
             print("[INFO] Sending session string to your Saved Messages...")

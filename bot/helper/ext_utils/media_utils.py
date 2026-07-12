@@ -2,7 +2,8 @@ import re
 from ast import literal_eval
 from contextlib import suppress
 from PIL import Image
-from hashlib import md5
+from hashlib import md5, sha256
+from aiofiles import open as aiopen
 from aiofiles.os import remove, path as aiopath, makedirs
 import json
 from asyncio import (
@@ -17,6 +18,7 @@ from re import search as re_search, escape
 from time import time
 from aioshutil import rmtree
 from langcodes import Language
+from niquests import AsyncSession
 
 from ... import LOGGER, DOWNLOAD_DIR, threads, cores
 from ...core.config_manager import BinConfig
@@ -33,25 +35,35 @@ def get_md5_hash(up_path):
         return md5_hash.hexdigest()
 
 
+def _convert_image(src, dst):
+    with Image.open(src) as im:
+        im.convert("RGB").save(dst, "JPEG", quality=95)
+
+
 async def create_thumb(msg, _id=""):
     if not _id:
-        _id = time()
+        _id = int(time() * 1000)
         path = f"{DOWNLOAD_DIR}thumbnails"
     else:
         path = "thumbnails"
     await makedirs(path, exist_ok=True)
-    photo_dir = await msg.download()
+    try:
+        photo_dir = await msg.download()
+    except Exception as e:
+        LOGGER.error(f"Failed to download photo: {e}")
+        return ""
     output = ospath.join(path, f"{_id}.jpg")
-    await sync_to_async(
-        Image.open(photo_dir).convert("RGB").save, output, "JPEG", quality=95
-    )
+    try:
+        await sync_to_async(_convert_image, photo_dir, output)
+    except Exception as e:
+        LOGGER.error(f"Failed to process thumb: {e}")
+        await remove(photo_dir)
+        return ""
     await remove(photo_dir)
     return output
 
 
 async def download_image_thumb(url):
-    from httpx import AsyncClient
-
     NON_IMAGE_TYPES = (
         "text/",
         "application/json",
@@ -60,58 +72,51 @@ async def download_image_thumb(url):
         "video/",
         "audio/",
     )
-    try:
-        async with AsyncClient(follow_redirects=True, timeout=30) as client:
-            try:
-                head_resp = await client.head(url)
-                content_type = head_resp.headers.get("content-type", "")
-                if content_type and any(
-                    content_type.startswith(t) for t in NON_IMAGE_TYPES
-                ):
-                    LOGGER.error(f"Thumb URL is not an image: {content_type}")
-                    return ""
+    path = f"{DOWNLOAD_DIR}thumbnails"
+    await makedirs(path, exist_ok=True)
 
+    try:
+        async with AsyncSession(timeout=30) as client:
+            try:
+                head_resp = await client.head(url, allow_redirects=True)
+                ct = head_resp.headers.get("content-type", "")
+                if ct and any(ct.startswith(t) for t in NON_IMAGE_TYPES):
+                    LOGGER.error(f"Thumb URL is not an image: {ct}")
+                    return ""
             except Exception:
                 pass
 
-            resp = await client.get(url)
+            resp = await client.get(url, allow_redirects=True)
             if resp.status_code != 200:
                 LOGGER.error(f"Failed to download thumb URL: HTTP {resp.status_code}")
                 return ""
 
-            content_type = resp.headers.get("content-type", "")
-            if content_type and any(
-                content_type.startswith(t) for t in NON_IMAGE_TYPES
-            ):
-                LOGGER.error(f"Thumb URL is not an image: {content_type}")
-                return ""
-
             data = resp.content
-
-            path = f"{DOWNLOAD_DIR}thumbnails"
-            await makedirs(path, exist_ok=True)
-            tmp_path = ospath.join(path, f"{time()}_tmp")
-            with open(tmp_path, "wb") as f:
-                f.write(data)
-            output = ospath.join(path, f"{time()}.jpg")
-
-            def _process_thumb(src, dst):
-                with Image.open(src) as im:
-                    im.convert("RGB").save(dst, "JPEG")
-
-            try:
-                await sync_to_async(_process_thumb, tmp_path, output)
-            except Exception as e:
-                LOGGER.error(f"Failed to process thumb image: {e}")
-                with suppress(Exception):
-                    await remove(tmp_path)
-                return ""
-            with suppress(Exception):
-                await remove(tmp_path)
-            return output
     except Exception as e:
         LOGGER.error(f"Error downloading thumb from URL: {e}")
         return ""
+
+    tag = sha256(url.encode()).hexdigest()[:12]
+    tmp_path = ospath.join(path, f"{tag}_tmp")
+    output = ospath.join(path, f"{tag}.jpg")
+
+    try:
+        async with aiopen(tmp_path, "wb") as f:
+            await f.write(data)
+    except Exception as e:
+        LOGGER.error(f"Failed to write thumb temp file: {e}")
+        return ""
+
+    try:
+        await sync_to_async(_convert_image, tmp_path, output)
+    except Exception as e:
+        LOGGER.error(f"Failed to process thumb image: {e}")
+        with suppress(Exception):
+            await remove(tmp_path)
+        return ""
+    with suppress(Exception):
+        await remove(tmp_path)
+    return output
 
 
 async def get_media_info(path, extra_info=False):
@@ -226,16 +231,6 @@ async def get_document_type(path):
 
 
 async def get_streams(file):
-    """
-    Gets media stream information using ffprobe.
-
-    Args:
-        file: Path to the media file.
-
-    Returns:
-        A list of stream objects (dictionaries) or None if an error occurs
-        or no streams are found.
-    """
     cmd = [
         "ffprobe",
         "-hide_banner",

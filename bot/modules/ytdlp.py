@@ -3,7 +3,7 @@ from ast import literal_eval
 from functools import partial
 from time import time
 
-from httpx import AsyncClient
+from niquests import AsyncSession
 from yt_dlp import YoutubeDL
 from pyrogram.filters import regex, user
 from pyrogram.handlers import CallbackQueryHandler
@@ -248,7 +248,7 @@ def extract_info(link, options):
 
 async def _mdisk(link, name):
     key = link.split("/")[-1]
-    async with AsyncClient() as client:
+    async with AsyncSession() as client:
         resp = await client.get(
             f"https://diskuploader.entertainvideo.com/v1/file/cdnurl?param={key}"
         )

@@ -27,8 +27,8 @@ class VikingFileUpload(BaseUpload):
     _TOKEN_KEY = "VIKINGFILE_HASH"
     _CONFIG_KEY = "VIKINGFILE_HASH"
 
-    def __init__(self, listener, path):
-        super().__init__(listener, path)
+    def __init__(self, listener, path, folder_name=""):
+        super().__init__(listener, path, folder_name)
         self.base_url = "https://vikingfile.com/api"
         self._server = None
         self._user_folder = self._resolve_user_folder()

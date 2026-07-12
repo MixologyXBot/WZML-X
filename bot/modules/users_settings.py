@@ -667,6 +667,16 @@ async def get_user_settings(from_user, stype="main"):
         buttons.data_button(
             "Gofile Folder ID", f"userset {user_id} menu GOFILE_FOLDER_ID"
         )
+        auto_create = (
+            user_dict.get("GOFILE_AUTO_CREATE_FOLDER")
+            if "GOFILE_AUTO_CREATE_FOLDER" in user_dict
+            else Config.GOFILE_AUTO_CREATE_FOLDER
+        )
+        auto_state = "✓" if auto_create else ""
+        buttons.data_button(
+            f"Auto-Create Folder {auto_state}",
+            f"userset {user_id} tog GOFILE_AUTO_CREATE_FOLDER {'t' if not auto_create else 'f'}",
+        )
         buttons.data_button("Back", f"userset {user_id} back uphoster", "footer")
         buttons.data_button(
             "Close", f"userset {user_id} close", "footer", style=ButtonStyle.DANGER
@@ -691,7 +701,8 @@ async def get_user_settings(from_user, stype="main"):
 ┟ <b>Name</b> → {user_name}
 ┃
 ┠ <b>Gofile Token</b> → <code>{gftoken}</code>
-┖ <b>Gofile Folder ID</b> → <code>{gffolder}</code>"""
+┠ <b>Gofile Folder ID</b> → <code>{gffolder}</code>
+┖ <b>Auto-Create Folder</b> → <code>{"Enabled" if auto_create else "Disabled"}</code>"""
 
     elif stype == "rclone":
         buttons.data_button("Rclone Config", f"userset {user_id} menu RCLONE_CONFIG")
@@ -1556,6 +1567,8 @@ async def edit_user_settings(client, query):
             back_to = "mirror"
         elif data[3] in ["USER_TOKENS", "USE_DEFAULT_COOKIE"]:
             back_to = "general"
+        elif data[3] == "GOFILE_AUTO_CREATE_FOLDER":
+            back_to = "gofile"
         else:
             back_to = "leech"
         await update_user_settings(query, stype=back_to)

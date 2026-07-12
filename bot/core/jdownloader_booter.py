@@ -12,7 +12,7 @@ from myjd import MyJdApi
 
 from .. import LOGGER, service_cores
 from ..helper.ext_utils.bot_utils import cmd_exec, new_task
-from .config_manager import Config
+from .config_manager import BinConfig, Config
 from .tg_client import TgClient
 
 _MAX_BOOT_RETRIES = 5
@@ -77,6 +77,13 @@ class JDownloader(MyJdApi):
         await self._write_config(
             "/JDownloader/cfg/org.jdownloader.api.RemoteAPIConfig.json",
             remote_data,
+        )
+        ffmpeg_data = {
+            "binarypath": f"/bin/{BinConfig.FFMPEG_NAME}",
+        }
+        await self._write_config(
+            "/JDownloader/cfg/org.jdownloader.controlling.ffmpeg.FFmpegSetup.json",
+            ffmpeg_data,
         )
         if not await path.exists("/JDownloader/JDownloader.jar"):
             pattern = r"JDownloader\.jar\.backup.\d$"
