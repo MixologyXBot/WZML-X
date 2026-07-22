@@ -44,8 +44,6 @@ $ARIA2_CMD \
     --peer-id-prefix="-qB5220-" \
     --peer-agent="qBittorrent/5.2.2" \
     --follow-torrent=mem \
-    --enable-dht=true \
-    --enable-peer-exchange=true \
     --reuse-uri=true \
     --socket-recv-buffer-size=16M \
     --disable-ipv6=false \
