@@ -1,6 +1,9 @@
 from asyncio import gather
 from time import time
 from uuid import uuid4
+from json import dumps as jdumps
+import hashlib
+from base64 import urlsafe_b64encode
 
 from pyrogram.enums import ChatAction
 from pyrogram.errors import ChannelInvalid, PeerIdInvalid, RPCError, UserNotParticipant
@@ -13,6 +16,13 @@ from ...core.tg_client import TgClient
 from ..ext_utils.shortener_utils import short_url
 from ..ext_utils.status_utils import get_readable_time
 from .button_build import ButtonMaker
+
+def encrypt_payload(payload_str):
+    if not (key := Config.VERCEL_PROTECT_KEY):
+        return None
+    key_hash = hashlib.sha256(key.encode()).digest()
+    encrypted = bytes(c ^ key_hash[i % 32] for i, c in enumerate(payload_str.encode()))
+    return urlsafe_b64encode(encrypted).decode()
 
 
 async def chat_info(channel_id):
@@ -119,9 +129,17 @@ async def verify_token(user_id, button=None):
         if button is None:
             button = ButtonMaker()
         encrypt_url = encode_slink(f"{token}&&{user_id}")
+        telegram_url = await short_url(f"https://t.me/{TgClient.BNAME}?start={encrypt_url}")
+        payload = {
+            'url': telegram_url,
+            'exp': int(time() + int(Config.VERCEL_TOKEN_TTL or 0)),
+            'padding_data': 'a' * 3300
+        }
         button.url_button(
             "Verify Access Token",
-            await short_url(f"https://t.me/{TgClient.BNAME}?start={encrypt_url}"),
+            f"https://{Config.VERCEL_DOMAIN}/token/__{user_id}__/{enc}"
+            if (enc := encrypt_payload(jdumps(payload))) and Config.VERCEL_DOMAIN
+            else telegram_url
         )
         return (
             f"┠ <i>Verify Access Token has been expired,</i> Kindly validate a new access token to start using bot again.\n┃\n┖ <b>Validity :</b> <code>{get_readable_time(Config.VERIFY_TIMEOUT)}</code>",

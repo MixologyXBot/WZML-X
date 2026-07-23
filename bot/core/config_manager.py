@@ -129,6 +129,9 @@ class Config:
     TG_PROXY = None
     THUMBNAIL_LAYOUT = ""
     VERIFY_TIMEOUT = 0
+    VERCEL_DOMAIN = ""
+    VERCEL_PROTECT_KEY = ""
+    VERCEL_TOKEN_TTL = 0
     LOGIN_PASS = ""
     TORRENT_TIMEOUT = 0
     TIMEZONE = "Asia/Kolkata"
