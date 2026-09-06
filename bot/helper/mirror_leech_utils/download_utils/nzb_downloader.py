@@ -82,13 +82,13 @@ async def add_nzb(listener, path):
     use_par2_lock = listener.extract and sab_par2_lock.throttled
     job_id = None
     par2_lock_acquired = False
+    url = listener.link
+    nzbpath = None
+    if await aiopath.exists(listener.link):
+        url = None
+        nzbpath = listener.link
     try:
         await sabnzbd_client.create_category(f"{listener.mid}", path)
-        url = listener.link
-        nzbpath = None
-        if await aiopath.exists(listener.link):
-            url = None
-            nzbpath = listener.link
         add_to_queue, event = await check_running_tasks(listener)
         res = await sabnzbd_client.add_uri(
             url,
@@ -121,6 +121,7 @@ async def add_nzb(listener, path):
                 if err := slots[0]["fail_message"]:
                     if par2_lock_acquired:
                         await sab_par2_lock.release()
+                        par2_lock_acquired = False
                     await gather(
                         listener.on_download_error(err),
                         sabnzbd_client.delete_history(job_id, delete_files=True),
@@ -168,7 +169,7 @@ async def add_nzb(listener, path):
                     await sleep(1)
             if not add_to_queue:
                 await sabnzbd_client.pause_job(job_id)
-            SBUTTONS = bt_selection_buttons(job_id)
+            SBUTTONS = bt_selection_buttons(job_id, listener.message)
             msg = "<b>Download Paused!</b>\n\n<i>Select your files &amp; press <b>Done Selecting</b> to start.</i>"
             await send_message(listener.message, msg, SBUTTONS)
         elif listener.multi <= 1:
@@ -179,6 +180,8 @@ async def add_nzb(listener, path):
             if listener.is_cancelled:
                 return
             async with task_dict_lock:
+                if listener.mid not in task_dict:
+                    return
                 task_dict[listener.mid].queued = False
 
             await sabnzbd_client.resume_job(job_id)
@@ -188,6 +191,7 @@ async def add_nzb(listener, path):
     except Exception as e:
         if par2_lock_acquired:
             await sab_par2_lock.release()
+            par2_lock_acquired = False
         await listener.on_download_error(f"{e}")
     finally:
         if nzbpath and await aiopath.exists(listener.link):

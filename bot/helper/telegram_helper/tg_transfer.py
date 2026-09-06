@@ -6,11 +6,47 @@ from pyrogram.file_id import FileType, ThumbnailSource
 from pyrogram.session import Auth, Session
 
 from ... import LOGGER
+from ...core.config_manager import Config
 from ...core.tg_client import TgClient
 
 MB = 1024 * 1024
 
 _global_work_loads = None
+
+_MEDIA_ATTRS = (
+    "audio",
+    "document",
+    "photo",
+    "sticker",
+    "animation",
+    "video",
+    "voice",
+    "video_note",
+    "new_chat_photo",
+    "story",
+    "web_page",
+)
+
+
+def media_of(message):
+    for attr in _MEDIA_ATTRS:
+        if m := getattr(message, attr, None):
+            return m
+    raise ValueError(
+        f"No downloadable media in msg {message.id} (type: {message.media})"
+    )
+
+
+def get_global_work_loads():
+    global _global_work_loads
+    if _global_work_loads is None:
+        _global_work_loads = dict(TgClient.helper_loads)
+        if TgClient.helper_users:
+            for no, load in TgClient.helper_user_loads.items():
+                _global_work_loads[-no] = load
+        if TgClient.user:
+            _global_work_loads[-(len(TgClient.helper_users) + 1)] = 0
+    return _global_work_loads
 
 
 class MtprotoPool:
@@ -103,19 +139,19 @@ class MtprotoPool:
 
 class HypertgTransfer:
     def __init__(self, obj):
-        global _global_work_loads
         self._obj = obj
         self._listener = obj._listener
+        if not Config.USE_HYPER:
+            self.clients = {}
+            self.client_ids = []
+            self.num_clients = 0
+            self.work_loads = {}
+            self._pool = MtprotoPool({})
+            self._cancel = Event()
+            self._tasks = []
+            return
         self.clients = dict(TgClient.helper_bots)
-        if _global_work_loads is None:
-            _global_work_loads = dict(TgClient.helper_loads)
-            if TgClient.helper_users:
-                for no, load in TgClient.helper_user_loads.items():
-                    _global_work_loads[-no] = load
-            if TgClient.user:
-                key = -(len(TgClient.helper_users) + 1)
-                _global_work_loads[key] = 0
-        self.work_loads = _global_work_loads
+        self.work_loads = get_global_work_loads()
         self.client_ids = list(self.clients.keys())
         if TgClient.helper_users:
             for no, client in TgClient.helper_users.items():

@@ -362,9 +362,9 @@ async def load_configurations():
         async with aiopen(".netrc", "w"):
             pass
 
-    from bot import service_cores
+    from .cpu import service_cores
 
-    cmd = f'chmod 600 .netrc && cp .netrc /root/.netrc && chmod +x setpkgs.sh && ./setpkgs.sh {BinConfig.ARIA2_NAME} "{service_cores}" {Config.CPU_LIMIT}'
+    cmd = f'chmod 600 .netrc && cp .netrc /root/.netrc && chmod +x setpkgs.sh && ./setpkgs.sh {BinConfig.ARIA2_NAME} "{service_cores()}" {Config.CPU_LIMIT}'
     if not Config.DISABLE_NZB:
         cmd += f" {BinConfig.SABNZBD_NAME}"
     await (await create_subprocess_shell(cmd)).wait()
@@ -409,6 +409,13 @@ async def load_configurations():
             shell=True,
         ))
         bot_loop.create_task(cmd_exec("python3 cron_boot.py", shell=True))
+
+    if Config.DISABLE_STREAM:
+        LOGGER.info("Streaming is disabled. Skipping stream server.")
+    else:
+        from .stream_server import spawn_stream_server
+
+        spawn_stream_server()
 
     from ..helper.ext_utils.tunnel_monitor import apply_tunnel_url_once
 

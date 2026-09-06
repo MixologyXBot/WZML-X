@@ -133,6 +133,13 @@ class TaskListener(TaskConfig):
             )
 
     async def on_download_complete(self):
+        try:
+            await self._on_download_complete()
+        except Exception as err:
+            LOGGER.error(f"Post-download failure: {err}", exc_info=True)
+            await self.on_upload_error(f"Post-download failure: {err}")
+
+    async def _on_download_complete(self):
         await sleep(2)
         if self.is_cancelled:
             return
@@ -455,8 +462,8 @@ class TaskListener(TaskConfig):
             button = buttons.build_menu(1) if link else None
 
             await send_message(self.user_id, msg, button)
-            if Config.LEECH_DUMP_CHAT:
-                await send_message(Config.LEECH_DUMP_CHAT, msg, button)
+            if Config.LEECH_LOG_CHAT:
+                await send_message(Config.LEECH_LOG_CHAT, msg, button)
             await send_message(self.message, user_message, button)
 
         elif self.is_leech:
@@ -481,7 +488,7 @@ class TaskListener(TaskConfig):
                 for index, (link, name) in enumerate(files.items(), start=1):
                     fmsg += f"{index}. <a href='{link}'>{name}</a>"
                     if Config.MEDIA_STORE and (
-                        self.is_super_chat or Config.LEECH_DUMP_CHAT
+                        self.is_super_chat or Config.LEECH_LOG_CHAT
                     ):
                         parts = link.split("/")[-2:]
                         if len(parts) == 2:
@@ -489,7 +496,12 @@ class TaskListener(TaskConfig):
                             if chat_id.isdigit():
                                 chat_id = f"-100{chat_id}"
                             flink = f"https://t.me/{TgClient.BNAME}?start={encode_slink('file' + chat_id + '&&' + msg_id)}"
-                            fmsg += f"\n┖ <b>Get Media</b> → <a href='{flink}'>Store Link</a> | <a href='https://t.me/share/url?url={flink}'>Share Link</a>"
+                            fmsg += f"\n┠ <b>Get Media</b> → <a href='{flink}'>Store Link</a> | <a href='https://t.me/share/url?url={flink}'>Share Link</a>"
+                            from ...modules.stream import gen_stream_link
+
+                            slinks = await gen_stream_link(chat_id, msg_id)
+                            if slinks:
+                                fmsg += f"\n┖ <b>Direct</b> → <a href='{slinks[0]}'>Stream</a> | <a href='{slinks[1]}'>Download</a>"
                     fmsg += "\n"
                     if len(fmsg.encode() + msg.encode()) > 4000:
                         await send_message(log_chat, msg + fmsg)
@@ -620,6 +632,13 @@ class TaskListener(TaskConfig):
                 del task_dict[self.mid]
             count = len(task_dict)
         await self.remove_from_same_dir()
+        if magnet_id := getattr(self, "_alldebrid_magnet_id", 0) or 0:
+            from ..mirror_leech_utils.download_utils.alldebrid_resolver import (
+                delete_magnet,
+            )
+
+            await delete_magnet(magnet_id)
+            self._alldebrid_magnet_id = 0
         msg = (
             f"""〶 <b><i><u>Limit Breached:</u></i></b>
 │

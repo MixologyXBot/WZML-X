@@ -1,5 +1,5 @@
 <p align="center">
-   <img src="docs/WZML-X.png" alt="WZML-X logo" width="420">
+   <img src="docs/w-icon.svg" alt="WZML-X logo" width="160">
 </p>
 
 <h1 align="center">WZML-X</h1>
@@ -220,6 +220,31 @@ Then tune the optional behavior from `config_sample.py`.
    - SABnzbd server definitions
    - Google Drive settings
    - RSS, search, media metadata, and logging controls
+</details>
+
+<details>
+   <summary>AllDebrid (<code>-ad</code>)</summary>
+
+   Set `ALLDEBRID_API_KEY` (default: empty, feature off) in `config_sample.py`,
+   in the environment, or from **Bot Settings → Config Variables → ALLDEBRID_API_KEY**.
+
+   Add `-ad` to a mirror/leech command to route the input through AllDebrid:
+
+   - `/mirror <filehost link> -ad` unlocks premium hosts (1fichier, rapidgator,
+     mega, ...) and hands the direct link to the normal downloader.
+   - `/leech <magnet> -ad` (or reply to a `.torrent` with `-ad`) uploads the
+     torrent to AllDebrid, waits for it to finish there, then downloads every
+     file from AllDebrid's CDN — aria2/qBittorrent are bypassed entirely.
+
+   `ALLDEBRID_NO_SEED_TIMEOUT` (default: `180`) caps how many seconds a magnet may
+   stall with no seeders and no download progress before the task is aborted.
+   Set it to `0` to disable the check and rely on AllDebrid's own dead-torrent
+   reporting instead.
+
+   The flag is documented in the mirror help menu under the **AllDebrid** button.
+   Without a key the task fails with `ALLDEBRID_API_KEY is not configured`;
+   without `-ad` nothing changes. Magnets stop after 3 min with no seeders and
+   2 h overall, and are removed from your AllDebrid history if the task fails.
 </details>
 
 ## Project Layout

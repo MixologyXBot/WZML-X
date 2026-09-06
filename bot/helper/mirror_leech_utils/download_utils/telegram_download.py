@@ -34,9 +34,12 @@ class TelegramDownloadHelper:
         self._id = ""
         self.session = ""
         tm = self._listener.transmission_mode
+        self._dump_chat = (
+            self._listener.up_dest if self._listener.is_leech else None
+        ) or Config.LEECH_LOG_CHAT
         self._hyper_dl = (
             Config.USE_HYPER
-            and Config.LEECH_DUMP_CHAT
+            and self._dump_chat
             and (
                 (tm in ("bot", "both") and len(TgClient.helper_bots) != 0)
                 or (
@@ -103,7 +106,7 @@ class TelegramDownloadHelper:
                     download = await self._hyper_dl_instance.download_media(
                         message,
                         file_name=path,
-                        dump_chat=Config.LEECH_DUMP_CHAT,
+                        dump_chat=self._dump_chat,
                     )
                     if (
                         self._hyper_dl_instance is not None
@@ -114,8 +117,11 @@ class TelegramDownloadHelper:
                         self._listener.dump_chat = self._hyper_dl_instance.dump_chat
                         self._listener.dump_msg_id = self._hyper_dl_instance.message.id
                     self._hyper_dl_instance = None
-                except Exception:
+                except Exception as e:
+                    LOGGER.warning(f"Hyper download failed, using normal: {e}")
+                    self._hyper_dl_instance = None
                     if self._listener.transmission_mode in ("user", "both"):
+                        self.session = "user"
                         try:
                             user_message = await TgClient.user.get_messages(
                                 chat_id=message.chat.id, message_ids=message.id
@@ -128,6 +134,7 @@ class TelegramDownloadHelper:
                                 file_name=path, progress=self._on_download_progress
                             )
                     else:
+                        self.session = "bot"
                         download = await message.download(
                             file_name=path, progress=self._on_download_progress
                         )

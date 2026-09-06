@@ -59,6 +59,9 @@ async def _on_download_started(api, data):
             await task.listener.on_download_error(msg, button)
             return
 
+        if task.listener.select and not task.listener.files_selected:
+            return
+
         task.listener.size = int(download.get("totalLength", "0"))
         mmsg = await limit_checker(task.listener)
         if mmsg:
@@ -89,7 +92,7 @@ async def _on_download_complete(api, data):
             if Config.BASE_URL and task.listener.select:
                 if not task.queued:
                     await api.forcePause(new_gid)
-                SBUTTONS = bt_selection_buttons(new_gid)
+                SBUTTONS = bt_selection_buttons(new_gid, task.listener.message)
                 msg = "<b>Download Paused!</b>\n\n<i>Select your files &amp; press <b>Done Selecting</b> to start.</i>"
                 await send_message(task.listener.message, msg, SBUTTONS)
     elif "bittorrent" in download:

@@ -15,7 +15,6 @@ from .. import (
     DOWNLOAD_DIR,
     LOGGER,
     categories_dict,
-    cores,
     excluded_extensions,
     intervals,
     multi_tags,
@@ -24,12 +23,14 @@ from .. import (
     user_data,
 )
 from ..core.config_manager import Config, BinConfig
+from ..core.cpu import ffmpeg_layout
 from ..core.tg_client import TgClient
 from ..helper.ext_utils.bot_lock import ff_lock
 from .ext_utils.bot_utils import (
     fetch_drive_cat,
     get_size_bytes,
     new_task,
+    parse_dest,
     sync_to_async,
 )
 from .ext_utils.bulk_links import extract_bulk_links
@@ -65,6 +66,7 @@ from .telegram_helper.bot_commands import BotCommands
 from .telegram_helper.message_utils import (
     get_tg_link_message,
     open_category_btns,
+    open_dump_chat_btns,
     send_message,
     send_status_message,
 )
@@ -96,6 +98,9 @@ class TaskConfig:
         self.drive_id = ""
         self.leech_dest = ""
         self.cmd_up_dest = ""
+        self.cmd_thread_id = None
+        self.leech_thread_id = None
+        self.dump_dest = ""
         self.rc_flags = ""
         self.tag = ""
         self.name = ""
@@ -116,17 +121,21 @@ class TaskConfig:
         self.is_qbit = False
         self.is_mega = False
         self.is_nzb = False
+        self.is_seedr = False
         self.is_jd = False
         self.is_clone = False
         self.is_uphoster = False
         self.is_gdrive = False
         self.is_rclone = False
         self.is_ytdlp = False
+        self.is_alldebrid = False
+        self._alldebrid_magnet_id = 0
         self.equal_splits = False
         self.transmission_mode = "bot"
         self.extract = False
         self.compress = False
         self.select = False
+        self.files_selected = False
         self.seed = False
         self.join = False
         self.private_link = False
@@ -192,15 +201,15 @@ class TaskConfig:
         self.is_gdrive = is_gdrive_link(self.source_url) if self.source_url else False
         self.is_mega = is_mega_link(self.link) if self.source_url else False
 
-        in_mode = f"#{'Mega' if self.is_mega else 'qBit' if self.is_qbit else 'SABnzbd' if self.is_nzb else 'JDown' if self.is_jd else 'RCloneDL' if self.is_rclone else 'ytdlp' if self.is_ytdlp else 'GDrive' if (self.is_clone or self.is_gdrive) else 'Aria2' if (self.source_url and self.source_url != self.message.link) else 'TgMedia'}"
+        in_mode = f"#{'Seedr' if self.is_seedr else 'Mega' if self.is_mega else 'qBit' if self.is_qbit else 'SABnzbd' if self.is_nzb else 'JDown' if self.is_jd else 'RCloneDL' if self.is_rclone else 'ytdlp' if self.is_ytdlp else 'GDrive' if (self.is_clone or self.is_gdrive) else 'Aria2' if (self.source_url and self.source_url != self.message.link) else 'TgMedia'}"
 
         self.mode = (in_mode, out_mode)
 
     def get_token_path(self, dest):
         if dest.startswith("mtp:"):
             return f"tokens/{self.user_id}.pickle"
-        elif Config.USE_SERVICE_ACCOUNTS and (
-            dest.startswith("sa:") or not dest.startswith("tp:")
+        elif dest.startswith("sa:") or (
+            Config.USE_SERVICE_ACCOUNTS and not dest.startswith("tp:")
         ):
             return "accounts"
         else:
@@ -322,22 +331,28 @@ class TaskConfig:
         if self.ffmpeg_cmds and not isinstance(self.ffmpeg_cmds, list):
             if self.user_dict.get("FFMPEG_CMDS", None):
                 ffmpeg_dict = self.user_dict["FFMPEG_CMDS"]
-                self.ffmpeg_cmds = [
-                    value
-                    for key in list(self.ffmpeg_cmds)
-                    if key in ffmpeg_dict
-                    for value in ffmpeg_dict[key]
-                ]
             elif "FFMPEG_CMDS" not in self.user_dict and Config.FFMPEG_CMDS:
                 ffmpeg_dict = Config.FFMPEG_CMDS
-                self.ffmpeg_cmds = [
-                    value
-                    for key in list(self.ffmpeg_cmds)
-                    if key in ffmpeg_dict
-                    for value in ffmpeg_dict[key]
-                ]
             else:
-                self.ffmpeg_cmds = None
+                ffmpeg_dict = {}
+            valid = (
+                {
+                    key: cmds
+                    for key, cmds in ffmpeg_dict.items()
+                    if isinstance(cmds, (list, tuple))
+                }
+                if isinstance(ffmpeg_dict, dict)
+                else {}
+            )
+            keys = list(self.ffmpeg_cmds)
+            if missing := [key for key in keys if key not in valid]:
+                await send_message(
+                    self.message,
+                    f"Unknown FFmpeg Cmds key(s): {', '.join(map(str, missing))}. Check FF Media Settings in /usetting.",
+                )
+            self.ffmpeg_cmds = [
+                value for key in keys if key in valid for value in valid[key]
+            ] or None
 
         self.metadata_title = self.user_dict.get("METADATA")
 
@@ -363,9 +378,10 @@ class TaskConfig:
                     or self.up_dest == "gd"
                 ):
                     self.up_dest = self.user_dict.get("GDRIVE_ID") or Config.GDRIVE_ID
-                elif (
-                    not self.up_dest and default_upload == "mega"
-                ) or self.up_dest == "mega":
+                elif not self.is_uphoster and (
+                    (not self.up_dest and default_upload == "mega")
+                    or self.up_dest == "mega"
+                ):
                     self.up_dest = "mega:"
 
                 if self.is_uphoster and not self.up_dest:
@@ -394,7 +410,9 @@ class TaskConfig:
             if not self.up_dest:
                 raise ValueError("No Upload Destination!")
 
-            if is_gdrive_id(self.up_dest):
+            if self.up_dest in ("gdl", "rcl"):
+                pass
+            elif is_gdrive_id(self.up_dest):
                 if not self.up_dest.startswith(
                     ("mtp:", "tp:", "sa:")
                 ) and self.user_dict.get("USER_TOKENS", False):
@@ -407,8 +425,6 @@ class TaskConfig:
                 ):
                     self.up_dest = f"mrcc:{self.up_dest}"
                 self.up_dest = self.up_dest.strip("/")
-            elif self.up_dest in ("gdl", "rcl"):
-                pass
             elif self.is_uphoster:
                 pass
             else:
@@ -459,7 +475,9 @@ class TaskConfig:
                 ) != self.get_config_path(self.up_dest):
                     raise ValueError("You must use the same config to clone!")
         else:
-            self.leech_dest = self.user_dict.get("LEECH_DUMP_CHAT")
+            self.leech_dest, self.leech_thread_id = parse_dest(
+                self.user_dict.get("LEECH_DUMP_CHAT")
+            )
 
             self.cmd_up_dest = self.up_dest
             if self.cmd_up_dest:
@@ -473,17 +491,11 @@ class TaskConfig:
                     elif self.cmd_up_dest.startswith("h:"):
                         self.cmd_up_dest = self.cmd_up_dest.replace("h:", "", 1)
                         self.transmission_mode = "both"
-                    if "|" in str(self.cmd_up_dest):
-                        self.cmd_up_dest, _ = list(
-                            map(
-                                lambda x: int(x) if x.lstrip("-").isdigit() else x,
-                                self.cmd_up_dest.split("|", 1),
-                            )
-                        )
-                    elif str(self.cmd_up_dest).lstrip("-").isdigit():
-                        self.cmd_up_dest = int(self.cmd_up_dest)
-                    elif str(self.cmd_up_dest).lower() == "pm":
+                    if str(self.cmd_up_dest).lower() == "pm":
                         self.cmd_up_dest = self.user_id
+                    else:
+                        chat, self.cmd_thread_id = parse_dest(self.cmd_up_dest)
+                        self.cmd_up_dest = chat
 
             self.transmission_mode = Config.TRANSMISSION_MODE
             if self.bot_trans:
@@ -493,18 +505,32 @@ class TaskConfig:
             if self.hybrid_leech:
                 self.transmission_mode = "both"
 
-            self.up_dest = Config.LEECH_DUMP_CHAT
+            self.up_dest = Config.LEECH_LOG_CHAT
+            if self.dump_dest:
+                dump_chats = Config.LEECH_DUMP_CHATS or {}
+                self.up_dest = dump_chats.get(self.dump_dest)
+                if self.up_dest is None:
+                    raw_id = str(self.dump_dest).lstrip("-").isdigit()
+                    if raw_id or self.dump_dest.startswith("@"):
+                        self.up_dest = self.dump_dest
+                    elif dump_chats:
+                        up_dest, is_cancelled = await open_dump_chat_btns(
+                            self.message, dump_chats, self.dump_dest
+                        )
+                        if is_cancelled:
+                            self.is_cancelled = True
+                            return
+                        if not up_dest:
+                            raise ValueError("No dump chat selected!")
+                        self.up_dest = up_dest
+                    else:
+                        raise ValueError(
+                            f"Unknown dump chat '{self.dump_dest}'! "
+                            f"Configured dumps: none"
+                        )
             if self.up_dest:
                 if not isinstance(self.up_dest, int):
-                    if "|" in str(self.up_dest):
-                        self.up_dest, self.chat_thread_id = list(
-                            map(
-                                lambda x: int(x) if x.lstrip("-").isdigit() else x,
-                                self.up_dest.split("|", 1),
-                            )
-                        )
-                    elif str(self.up_dest).lstrip("-").isdigit():
-                        self.up_dest = int(self.up_dest)
+                    self.up_dest, self.chat_thread_id = parse_dest(self.up_dest)
 
                 if self.transmission_mode in ("user", "both"):
                     if not TgClient.user:
@@ -709,6 +735,7 @@ class TaskConfig:
             is_leech=self.is_leech,
             is_jd=self.is_jd,
             is_nzb=self.is_nzb,
+            is_seedr=self.is_seedr,
             is_uphoster=self.is_uphoster,
             same_dir=self.same_dir,
             bulk=self.bulk,
@@ -755,6 +782,7 @@ class TaskConfig:
                 is_leech=self.is_leech,
                 is_jd=self.is_jd,
                 is_nzb=self.is_nzb,
+                is_seedr=self.is_seedr,
                 is_uphoster=self.is_uphoster,
                 same_dir=self.same_dir,
                 bulk=self.bulk,
@@ -821,6 +849,7 @@ class TaskConfig:
         return t_path if self.is_file and code == 0 else dl_path
 
     async def proceed_ffmpeg(self, dl_path, gid):
+        cores, _ = ffmpeg_layout()
         checked = False
         lock_acquired = False
         cmds = [
@@ -847,6 +876,9 @@ class TaskConfig:
                     delete_files = True
                 else:
                     delete_files = False
+                if "-i" not in cmd:
+                    LOGGER.error(f"Skipping ffmpeg cmd without -i: {ffmpeg_cmd}")
+                    continue
                 index = cmd.index("-i")
                 input_file = cmd[index + 1]
                 if input_file.strip().endswith(".video"):
@@ -862,15 +894,15 @@ class TaskConfig:
                     if not is_video and not is_audio:
                         break
                     elif is_video and ext == "audio":
-                        break
+                        continue
                     elif is_audio and not is_video and ext == "video":
-                        break
+                        continue
                     elif ext not in [
                         "all",
                         "audio",
                         "video",
                     ] and not dl_path.strip().lower().endswith(ext):
-                        break
+                        continue
                     new_folder = ospath.splitext(dl_path)[0]
                     if await aiopath.isfile(new_folder):
                         new_folder = f"{new_folder}_temp"
